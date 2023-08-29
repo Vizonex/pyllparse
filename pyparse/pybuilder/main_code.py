@@ -41,6 +41,7 @@ class Code:
 class Field(Code):
     
     def __init__(self, signature: str, name: str,field:str) -> None:
+        self.field = field
         # if re.search(r"[//\s\\]+",field):
         #     raise TypeError(f"Can\'t access internal field from user code because the field: {name} conatins invalid characters")
         super().__init__(signature, name + "_" + field)
@@ -68,6 +69,7 @@ class Load(Field):
 
 
 class _Match(Code):
+    """Refers to the Code's Match Not the Node's Match"""
     def __init__(self,name: str) -> None:
         super().__init__('match', name)
 
@@ -84,6 +86,7 @@ class MulAdd(Field):
     def __init__(self,field: str,base:int,max:int,signed:bool= False) -> None:
         self.options = IMulAddOptions(base,max,signed)
         super().__init__('value', 'mul_add', field)
+
 
 class Or(FieldValue):
     def __init__(self, field: str, value: int) -> None:
@@ -484,7 +487,7 @@ class Reachability:
         res:set[Node] = set()
         queue = [ root ]
 
-        while len(queue) != 0:
+        while queue:
             node = queue.pop()
             if node in res:
                 continue

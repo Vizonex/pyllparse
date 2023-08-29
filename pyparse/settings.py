@@ -209,7 +209,7 @@ class Disassembler:
         # Get all span's names and objects themselves...
         # Turn span_names into a set
         self.nodes = {n.name:n for n in roots}
-        print(self.nodes)
+        # print(self.nodes)
         span_names = list(sorted({n.span.callback.name for n in roots if isinstance(n,(source.SpanStart,source.SpanEnd))}))
         # span_starts = {n.span.callback.name:n for n in roots if isinstance(n,source.SpanStart)}
 

@@ -16,7 +16,6 @@ class CCompiler:
         compilation = Compilation(info.prefix,info.properties,list(info.resumptionTargets),
         options=self.options)
 
-        compilation
 
         out:list[str] = []
 
@@ -49,7 +48,7 @@ class CCompiler:
         out.append(f'             {info.prefix}_t*, const char*, const char*);')
         out.append('')
 
-        # Start Queing span callbacks
+        # Start Queuing span callbacks
         # otherwise we will have nothing 
         # but mess which is not what we want - Vizonex 
         compilation.reserveSpans(info.spans)
@@ -160,7 +159,6 @@ class CCompiler:
             posField = ctx.spanPosField(span.index)
             
             if len(span.callbacks) == 1:
-                
                 cb = ctx.unwrapCode(span.callbacks[0],True)
                 callback = ctx.buildCode(cb)
             

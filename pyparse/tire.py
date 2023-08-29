@@ -14,6 +14,7 @@ class IEdge:
     def __lt__(self,object):
         return self.key < object.key
 
+# TODO RENAME TO TRIE!
 
 class TireNode:
     """Mainly Used as an Abstract Object for typing"""
@@ -89,12 +90,8 @@ class Tire:
 
 
     def sequence(self,edges:list[IEdge],prefix:bytes,path:list[bytes]):
-
         sliced = self.Slice(edges,len(prefix))
         assert not any([edge.noAdvance for edge in edges])
-        # Concate prefix? Maybe....
-    
-        
         child = self.level(sliced,path + [prefix])
         return TireSequence(prefix,child)
     
@@ -115,6 +112,7 @@ class Tire:
             if len(edge.key) == 0:
                 otherwise = TireEmpty(edge.node,edge.value)
                 continue
+
             key = edge.key[0]
 
             if keys.get(key):
@@ -140,7 +138,6 @@ class Tire:
             if not (allSame or len(subEdges) == 0):
                 err = f'Conflicting `.peek` and `.match` entries in "{self.name}" at: [' + (b", ".join(subPath).decode("utf-8")) + ']'
                 raise TypeError(err)
-            
             child = ITireSingleChild(key,noAdvance,self.level(sliced,subPath))
             children.append(child)
 

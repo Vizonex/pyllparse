@@ -98,6 +98,7 @@ class MatchSequence:
         out.append('reset:')
         out.append('  s->_index = 0;')
         out.append('  res.current = p;')
+        out.append('  return res;')
         out.append('};')
 
 
@@ -211,7 +212,7 @@ class MulAdd(Field):
         mulMin = f'{_min} / {options.base}'
 
         out.append('/* Multiplication overflow */')
-        out.append(f'if ({field} > {mulMax}) '+'{')
+        out.append(f'if ({field} > {mulMax}) '+ '{')
         out.append('  return 1;')
         out.append('}')
 
@@ -230,7 +231,7 @@ class MulAdd(Field):
         out.append(f'  if ({field} > {_max} - {_match})')
         out.append('    return 1;')
         out.append('  }')
-        out.append('}')
+        # out.append('}')
 
         out.append(f'{field} += {_match};')
 
@@ -294,6 +295,7 @@ class Node:
         self.privCompilation: Optional["Compilation"] = None 
     
     def build(self,compilation:"Compilation"):
+        
         if self.cachedDecel:
             return self.cachedDecel
         
@@ -303,12 +305,17 @@ class Node:
         self.privCompilation = compilation
 
         out :list[str] = []
-       
-        compilation.debug(out,f'Entering node "{self.ref.id.originalName}" ("{self.ref.id.name}")')
-        self.doBuild(out)
+        # if "update_key" in res:
+        #     print(res)
+        #     print([*self.ref.Slots])
+        compilation.debug(out, f'Entering node \\"{self.ref.id.originalName}\\" (\\"{self.ref.id.name}\\")')
 
+ 
+        self.doBuild(out)
+      
         compilation.addState(res,out)
-       
+
+        
         return res 
 
     @property
@@ -334,27 +341,27 @@ class Node:
     # that cannot be matched so Writing out all the arguments was a must to prevent a deadly recursion
     def tailTo(self,out:list[str],node:IWrap[_frontend.node.Node],noAdvance:bool,value:Optional[int]):
         ctx = self.compilation
-        t = ctx.unwrapNode(node)
-        
+        target = ctx.unwrapNode(node).build(ctx)
+      
         # IF we have already built our target do not continue to build more of them!
-        if not isinstance(t,str):
-            target = t.build(ctx)
-        else:
+        # if not isinstance(t,str):
+        # target = t.build(ctx)
+        # else:
             # Since we have the target already built let us not forget to use the name once more...
-            target = t 
+            # target = t 
         if not target.startswith(STATE_PREFIX):
             target = STATE_PREFIX + target 
 
         if not noAdvance:
             out.append(f"{ctx.posArg()}++;")
         
-        if value:
+        if isinstance(value, int):
             out.append(f'{ctx.matchVar()} = {value};') 
         
         out.append(f'goto {LABEL_PREFIX}{target};')
 
     def doBuild(self,out:list[str]):
-        pass 
+        raise NotImplementedError
 
 
 
@@ -611,6 +618,7 @@ class SpanEnd(Node):
     def __init__(self, ref: _frontend.node.SpanEnd) -> None:
         self.ref = ref 
         super().__init__(ref)
+
     def doBuild(self, out: list[str]):
         out.append('const unsigned char* start;')
         out.append('int err;')
@@ -658,7 +666,7 @@ class SpanEnd(Node):
         
         rt = ctx.unwrapNode(otherwise.node)
         # check if the resumption target has already been built or not...
-        resumptionTarget = rt if isinstance(rt,str) else rt.build(ctx)
+        resumptionTarget = rt.build(ctx)
 
         out.append(f'{ctx.currentField()} = ' +
             f"(void*) (intptr_t) {STATE_PREFIX + resumptionTarget if not resumptionTarget.startswith(STATE_PREFIX) else resumptionTarget};")
@@ -671,6 +679,7 @@ TABLE_GROUP = 16
 
 # _mm_cmpestri takes 8 ranges
 SSE_RANGES_LEN = 16
+
 # _mm_cmpestri takes 128bit input
 SSE_RANGES_PAD = 16
 MAX_SSE_CALLS = 2
@@ -717,7 +726,7 @@ class TableLookup(Node):
             ctx.indent(out,tmp,'    ')
             out.append('  }')
         out.append('  default: {')
-        self.tailTo(tmp,**self.ref.otherwise.__dict__)
+        self.tailTo(tmp, **self.ref.otherwise.__dict__)
         ctx.indent(out,tmp,'    ')
         out.append('  }')
         out.append('}')
@@ -833,11 +842,6 @@ class TableLookup(Node):
 
 BLOB_GROUP_SIZE = 11
 
-# @dataclass
-# class IComplationProperty:
-#     name:str 
-#     ty:str 
-
 from .pybuilder import Property
 
 
@@ -878,6 +882,7 @@ class Compilation:
 
         for node in resumptionsTargets:
             self.resumptionTargets.add(STATE_PREFIX + node.ref.id.name)
+
 
     def buildStateEnum(self,out:list[str]):
         # TODO (Vizonex) Give out other names that you could pass as an enum statename 
@@ -943,7 +948,7 @@ class Compilation:
         if len(self.matchSequence) == 0:
             return 
         MatchSequence.buildGlobals(out)
-
+    
         for _match in self.matchSequence.values():
             _match.build(self,out)
             out.append('')
@@ -964,8 +969,9 @@ class Compilation:
             f"(const char*) {self.endPosArg()}"
             ]
         
-        out.append(f"{self.options.debug} ({', '.join(args)})")
-        out.append(f'  {self.cstring(message)}')
+        out.append(f"{self.options.debug} ({', '.join(args)},")
+        out.append(f'  {self.cstring(message)});')
+        
     
     def buildGlobals(self,out:list[str]):
         if self.options.debug:
@@ -980,11 +986,12 @@ class Compilation:
         
         fix_and_build(self,out)
     
+    
     def buildResumptionStates(self,out:list[str]):
         for name, lines in self.stateDict.items():
             if not name in self.resumptionTargets:
                 continue
-                
+     
             out.append(f"case {name}:")
             out.append(f"{LABEL_PREFIX}{name} : " + "{")
             for line in lines:
@@ -997,7 +1004,7 @@ class Compilation:
         for name, lines in self.stateDict.items():
             if name in self.resumptionTargets:
                 continue
-            
+   
             out.append(f'{LABEL_PREFIX}{name}: ' + "{")
             for line in lines:
                 out.append(f"  {line}")
@@ -1008,6 +1015,7 @@ class Compilation:
     def addState(self,state:str,lines:list[str]):
         assert not self.stateDict.get(state)
         self.stateDict[state] = lines 
+       
 
     def buildCode(self,code:Code) -> str:
         if self.codeMap.get(code.ref.name):
@@ -1031,7 +1039,7 @@ class Compilation:
         
         if self.CodeContainer.get(code):
             # Give some indication that the element has already been built...
-            return None if not allow_continue else self.CodeContainer.get(code)
+            return self.CodeContainer[code]
       
         ref = code.ref 
         
@@ -1062,6 +1070,7 @@ class Compilation:
         else:
             raise Exception(f'refrence "{ref.name}" is an Invalid Code Type , TypeName:"{ref.__class__.__name__}"')
         self.CodeContainer[code] =  r
+        
         return r
 
 
@@ -1069,7 +1078,7 @@ class Compilation:
 
         if self.NodeContainer.get(node):
             
-            return self.NodeContainer[node].ref.id.name
+            return self.NodeContainer[node]
 
         ref = node.ref
         if isinstance(ref,_frontend.node.Consume):

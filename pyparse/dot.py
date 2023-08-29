@@ -1,9 +1,9 @@
 
 from .pybuilder.main_code import Edge, Node 
-
+from pathlib import Path
 from typing import  Union, Optional
 
-# TODO Vizonex Fix all graphs and more...
+# TODO Vizonex Fix all graphs and more It's currently broken...
 
 COLOR_ADVANCE = 'black'
 COLOR_NO_ADVANCE = 'blue'
@@ -16,7 +16,9 @@ class Dot:
     def __init__(self) -> None:
         self.idCache:dict[Node,str] = {}
         self.ns : set[str] = set()
-        
+
+    def dump_to_file(self,filename:Union[str,Path], root:Node):
+        open(filename,"w").write(self.build(root))
     
     def build(self,root:Node):
         res = ''
@@ -32,13 +34,12 @@ class Dot:
     def enumerateNodes(self,root:Node):
         queue = [ root ]
         seen : set[Node] = set()
-
-        while len(queue) != 0:
+        
+        while queue:
             node = queue.pop()
-
             if node in seen:
                 continue
-            
+
             seen.add(node)
         
             for edge in node:
@@ -47,7 +48,7 @@ class Dot:
             otherwise = node.getOtherwiseEdge()
             if otherwise:
                 queue.append(otherwise.node)
-            
+    
         return seen
     
     def buildNode(self,node:Node):
@@ -69,7 +70,7 @@ class Dot:
                 targets[edge.node] = [edge]
             
         res += self.buildEdgeMap(node,advance,"advance")
-        res += self.buildEdgeMap(node,advance,"noAdvance")
+        res += self.buildEdgeMap(node,noAdvance,"noAdvance")
 
         return res 
     
@@ -82,7 +83,6 @@ class Dot:
             code : list[Edge] = []
 
             for edge in edges:
-                
                 if not edge.key:
                     otherwise.append(edge)
                 elif isinstance(edge.key,int):
@@ -92,6 +92,7 @@ class Dot:
                 else:
                     sequence.append(edge)
             labels: list[str] = []
+            # print(target.name,otherwise,code,single,sequence)
 
             # end:int node:Node start:int 
             ranges : list[dict[str,Union[int,Node]]] = []
@@ -100,9 +101,9 @@ class Dot:
             lastKey : Optional[int] = None
 
             for edge in single:
-                # print(type(edge.key))
-                key = edge.key[0] if isinstance(edge.key,bytes) else edge.key
-
+               
+                key = edge.key[0] if isinstance(edge.key,bytes) else edge.key if not isinstance(edge.key, str) else edge.key.encode()[0]
+              
                 if lastKey and lastKey == key - 1:
                     lastKey = key 
                     continue
@@ -114,10 +115,10 @@ class Dot:
                 lastKey = key 
             
             if lastKey:
+                assert firstKey
                 ranges.append({"start":firstKey,"end":lastKey,"node":target})
             
             for _range in ranges:
-                # print((_range,node))
                 labels.append(self.buildRangeLabel(node,_range))
 
             for edge in sequence:
@@ -130,7 +131,8 @@ class Dot:
                 labels.append(self.buildOtherwiseLabel(node,edge))
 
             
-            color = COLOR_ADVANCE if kind == 'noAdvance' else COLOR_NO_ADVANCE 
+            color = COLOR_NO_ADVANCE if kind == 'noAdvance' else COLOR_ADVANCE
+          
             res += f'  "{self.id(node)}" -> "{self.id(target)}"'\
                 f"[label=\"{'|'.join(labels)}\" color=\"{color}\" decorate=true];\n"
 
@@ -139,7 +141,8 @@ class Dot:
     def buildRangeLabel(self,node:Node,_range:dict[str,Union[int,Node]]):
         start = self.buildChar(_range["start"])
         end = self.buildChar(_range["end"])
-        return start if _range["start"] == _range["end"] else f"{start}:{end}"
+        # return range.start === range.end ? start : `${start}:${end}`;
+        return start if _range['start'] == _range['end'] else f"{start}:{end}"
     
     def buildEdgeLabel(self,node:Node,edge:Edge):
         return f"{self.buildBuffer(edge.key)}"
@@ -151,6 +154,9 @@ class Dot:
         return 'otherwise' if edge.noAdvance else 'skipTo'
 
     def buildChar(self,code:int):
+
+        if not isinstance(code,int):
+            code = ord(code)
         if code == 0x0a:
             return self.escape('\'\\n\'')
         if code == 0x0d:
@@ -159,11 +165,12 @@ class Dot:
             return self.escape('\'\\t\'')
         
         if (0x20 <= code and code <= 0x7e):
-            return self.escape('%i' % code)
+            return self.escape(chr(code))
         # I Don't know how accurate this is but it was worth a shot
         res = hex(code)
-        if len(res):
-            return res 
+        return res
+     
+        
 
     def buildBuffer(self,buffer:bytes):
         s = buffer.decode() if isinstance(buffer,bytes) else buffer 

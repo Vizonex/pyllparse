@@ -458,12 +458,10 @@ class Frontend:
 
         # res : WrappedCode
         if isinstance(code,source.code.IsEqual):
-            res = codeImpl.IsEqual(
-                _frontend.code.IsEqual(prefixed,code.field,code.value))
+            res = codeImpl.IsEqual(_frontend.code.IsEqual(prefixed,code.field,code.value))
                 
         elif isinstance(code,source.code.Load):
-            res = codeImpl.Load(
-                _frontend.code.Load(prefixed,code.field))
+            res = codeImpl.Load(_frontend.code.Load(prefixed,code.field))
 
         elif isinstance(code,source.code.MulAdd):
             m = _frontend.code.MulAdd(prefixed,code.field,

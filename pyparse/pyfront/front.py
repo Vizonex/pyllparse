@@ -24,7 +24,7 @@ class IWrap(Generic[T]):
         self.ref = ref 
         
     def __hash__(self) -> int:
-        return super().__hash__()
+        return hash(self.ref)
 
 def toCacheKey(value:Union[int,bool]) -> str:
     if isinstance(value,int):

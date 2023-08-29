@@ -4,6 +4,9 @@ from ..pyfront.nodes import Node, Empty
 WrapNode = IWrap[Node]
 WrapList = list[WrapNode]
 
+
+# TODO (Vizonex) Make peephole into 2 seperate functions instead of a class to 
+# Optimize everything down further...
 class Peephole:
     def __init__(self) -> None:
         return 
@@ -40,7 +43,7 @@ class Peephole:
             if not otherwise.noAdvance:
                 continue
 
-            slot.node = otherwise.node
+            slot.node.ref = otherwise.node.ref
 
             changed = True 
         return changed

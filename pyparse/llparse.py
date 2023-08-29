@@ -43,12 +43,11 @@ class Compiler:
         return Frontend(self.prefix,Impl,options={"maxTableElemWidth":self.maxTableElemWidth,"minTableSize":self.minTableSize}).compile(root,properties)
 
 
-    def compile(self,root:source.code.Node,properties:list[source.Property],Impl:Optional[IImplementation] = IImplementation()):
+    def compile(self,root:source.code.Node,properties:list[source.Property],header_name:Optional[str] = None,Impl:Optional[IImplementation] = IImplementation()):
         """Creates the C and header file..."""
-        c = CCompiler(self.prefix,self.debug)
         info = self.to_frontend(root,properties,Impl)
         hb = HeaderBuilder(self.prefix,self.headerGuard,properties,info.spans)
-        return CompilerResult(c.compile(info),hb.build())
+        return CompilerResult(CCompiler(header_name,self.debug).compile(info),hb.build())
 
 
 
@@ -89,12 +88,20 @@ class LLParse(source.Builder):
         headerGuard:Optional[str] = None, 
         debug:Optional[str] = None,
         maxTableElemWidth:Optional[int] = None ,
-        minTableSize:Optional[int] = None):
+        minTableSize:Optional[int] = None, header_name:Optional[str] = None):
 
         """Builds Graph and then compiles the data into C code , returns with the header and C file inside of a Dataclass """
         
         compiler = Compiler(self.prefix,headerGuard,debug,maxTableElemWidth if maxTableElemWidth else DEFAULT_MAX_TABLE_WIDTH ,minTableSize if minTableSize else DEFAULT_MIN_TABLE_SIZE)
+ 
+        return compiler.compile(root,self.properties(), header_name=header_name)
 
-        return compiler.compile(root,self.properties())
+    def to_frontend(self,root:source.code.Node, headerGuard:Optional[str] = None,
+        debug:Optional[str] = None,
+        maxTableElemWidth:Optional[int] = None ,
+        minTableSize:Optional[int] = None):
+        """Used as an external hack to get access to the frontend of llparse and extract 
+        it's contents to compile the libraries you make other things like cython"""
+        return Compiler(self.prefix,headerGuard,debug,maxTableElemWidth if maxTableElemWidth else DEFAULT_MAX_TABLE_WIDTH ,minTableSize if minTableSize else DEFAULT_MIN_TABLE_SIZE).to_frontend(root,self.properties)
 
 

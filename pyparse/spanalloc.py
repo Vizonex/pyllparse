@@ -15,7 +15,7 @@ class DeadLoop(Exception):
       case dead_loop:
       dead_loop : {
         goto dead_loop;  
-      } // Rest in Peace Computer x_x
+      } /* Rest in Peace Computer x_x */
     }
     ```"""
 
