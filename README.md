@@ -20,8 +20,8 @@ I ended up mentioning how I did this a while back and I also had a concept for a
 - I didn't like the LemonParser or Yacc all that much and a good ide for handling them in Visual Studio Code does not exist.
 - The closest thing I got to what I wanted was a project named NMFU shorthand for no memory for you and even I had problems with that script...
 
-Currently there is a problem with the keyword `match` in python 3.10 that I have yet to fix so this will only be suitable for 3.9 currently until I figure out a solution to bypass it...
-
+Currently there is a problem with the keyword `match` in python 3.10 that I have yet to fix so this will only be suitable for 3.9 currently until I figure out a solution to bypass it..
+update truns out 3.10 could handle the keyword `match` since re.match is an api call so I trust that this wont need to be changed as of yet so this issue has been resolved.
 
 This was the Code that inspired me to try and make a new pyi compiler branch for cython and if it wasn't for llhttp existing and it's magical experience I would've never done what I did.
 
