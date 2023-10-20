@@ -87,9 +87,11 @@ class SpanAllocator:
         
         queue = set(nodes)
         spans : SpanSet = set()
-        
-        for node in queue:
-            
+        # This fixes an issue when using a for loop which unlike in typescript 
+        # we cannot remove items when in a for-loop in python this also ensures 
+        # that all spans are visited.
+        while queue:
+            node = queue.pop()
             active = activeMap[node]
             if isinstance(node ,SpanStart):
                 span = _id(node)
