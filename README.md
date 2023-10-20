@@ -35,4 +35,5 @@ Unlike llparse in typescript this has more integrated features like building the
 - Make a youtube tutorial on how to use this library on Vizonex Builds
 - Release pypi packages
 - Build an enum compiler like seen in llhttp
-
+- Implement llvm bytecode and js outputs if I have the time for it.
+ 
