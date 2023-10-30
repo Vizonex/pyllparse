@@ -1,5 +1,5 @@
 # pyllparse
-A parody of library of llparse. Original version was written in typescript by Indutny
+A python parody of the typescript library llparse.
 
 I take no credit for the orginal work done by indutny and I was originally very nervous about making 
 this python library that I made public... 
