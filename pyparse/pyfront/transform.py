@@ -1,21 +1,20 @@
-from typing import Optional , Union 
+from dataclasses import dataclass
 
 
-
-# Transform {
-#   constructor(public readonly name: string)
-
+@dataclass
 class Transform:
-    def __init__(self,name:str) -> None:
-        self.name = name
+    name: str
+
 
 class ID(Transform):
     def __init__(self) -> None:
         super().__init__("id")
 
+
 class ToLowerUnsafe(Transform):
     def __init__(self) -> None:
         super().__init__("to_lower_unsafe")
+
 
 class ToLower(Transform):
     def __init__(self) -> None:

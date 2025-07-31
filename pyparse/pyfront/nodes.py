@@ -1,110 +1,107 @@
-
 from dataclasses import dataclass, field
-from typing import Optional, Any
-from ..pyfront.front import IWrap, Code, Span , SpanField
+from typing import Any, Optional
+
+from ..pyfront.front import Code, IWrap, Span, SpanField
 from ..pyfront.transform import Transform
+
 
 class Slot:
     # ONLY NODE SHOULD BE ALLOWED TO BE SEEN
-    
 
-    def __init__(self,node:IWrap["Node"], value: Any) -> None:
+    def __init__(self, node: IWrap["Node"], value: Any) -> None:
         self.privNode = node
         """Same as calling it from get and setting the value etc..."""
-        self.privUpdate = value 
+        self.privUpdate = value
 
-    # TODO Vizonex Figure out how to actually implement 
+    # TODO Vizonex Figure out how to actually implement
     # Slots -> private readonly privUpdate: (value: IWrap<Node>) => void
-    # For Now use this backup by using the unique name to hash the values 
-    # I spent 4 hours trying to figure this how this could be implemented 
-    # so this is my only ideal sloution 
+    # For Now use this backup by using the unique name to hash the values
+    # I spent 4 hours trying to figure this how this could be implemented
+    # so this is my only ideal sloution
     def __hash__(self) -> int:
         return hash(self.privUpdate.ref.id.name)
 
     @property
     def node(self):
         return self.privNode
-   
-
 
 
 @dataclass
 class IUniqueName:
-    name:str 
-    originalName:str 
+    name: str
+    originalName: str
 
 
 @dataclass
 class IOtherwiseEdge:
     node: IWrap["Node"]
-    noAdvance:bool 
-    value:Optional[int]
+    noAdvance: bool
+    value: Optional[int]
 
 
 @dataclass
 class Identifier:
-    prefix:str = ""
-    postfix:str = ""
-    ns : set[str] = field(default_factory=set,init=False)
+    prefix: str = ""
+    postfix: str = ""
+    ns: set[str] = field(default_factory=set, init=False)
 
-    def id(self,name:str):
+    def id(self, name: str):
         """Creates a Unique name for the switches"""
         target = self.prefix + name + self.postfix
-        
+
         if target in self.ns:
             i = 1
             for i in range(1, len(self.ns)):
-                if (target +  '_%i' % i) not in self.ns:
+                if (target + "_%i" % i) not in self.ns:
                     break
-            target += '_%i' % i
+            target += "_%i" % i
 
         self.ns.add(target)
-        return IUniqueName(target,name)
+        return IUniqueName(target, name)
 
 
-
+@dataclass
 class Node:
-    def __init__(self,id:IUniqueName) -> None: 
-        self.otherwise:Optional[IOtherwiseEdge] = None 
-        self.Slots: Optional[list[Slot]] = []
-        self.id = id 
+    id: IUniqueName
+    otherwise: Optional[IOtherwiseEdge] = field(default=None, init=False)
+    Slots: Optional[list[Slot]] = field(default_factory=list, init=False)
 
-    def setOtherwise(self,node:IWrap["Node"],noAdvance:bool,value:Optional[int] = None):
-        self.otherwise = IOtherwiseEdge(node,noAdvance,value)
-        
+    def setOtherwise(
+        self, node: IWrap["Node"], noAdvance: bool, value: Optional[int] = None
+    ):
+        self.otherwise = IOtherwiseEdge(node, noAdvance, value)
 
     def getSlots(self):
         if self.Slots == []:
             self.Slots.extend(self.buildSlots())
-        for s in self.Slots:
-            yield s 
+        yield from self.Slots
 
     def buildSlots(self):
         otherwise = self.otherwise
         if otherwise:
             yield Slot(otherwise.node, otherwise.node)
 
+
 class Consume(Node):
-    def __init__(self,id:IUniqueName,field:str) -> None:
+    def __init__(self, id: IUniqueName, field: str) -> None:
         self.field = field
         super().__init__(id)
 
 
-
 @dataclass
 class IInvokeEdge:
-    code : int 
-    node : IWrap[Node] 
+    code: int
+    node: IWrap[Node]
 
 
 class Invoke(Node):
-    def __init__(self, id: IUniqueName, code:IWrap[Code]) -> None:
-        self.Edges:list[IInvokeEdge] = []
-        self.code = code 
+    def __init__(self, id: IUniqueName, code: IWrap[Code]) -> None:
+        self.Edges: list[IInvokeEdge] = []
+        self.code = code
         super().__init__(id)
 
-    def addEdge(self,code:int,node:IWrap[Node]):
-        self.Edges.append(IInvokeEdge(code,node))
+    def addEdge(self, code: int, node: IWrap[Node]):
+        self.Edges.append(IInvokeEdge(code, node))
 
     def edges(self):
         return self.Edges
@@ -114,30 +111,28 @@ class Invoke(Node):
             yield Slot(edge.node, edge.node)
 
         for e in super().buildSlots():
-            yield e 
+            yield e
 
 
 class Empty(Node):
     def __init__(self, id: IUniqueName) -> None:
         super().__init__(id)
 
+
 class Error(Node):
-    def __init__(self, id: IUniqueName,code:int,reason:str) -> None:
-        self.code = code 
+    def __init__(self, id: IUniqueName, code: int, reason: str) -> None:
+        self.code = code
         self.reason = reason
         super().__init__(id)
 
 
-
 class Match(Node):
     def __init__(self, id: IUniqueName) -> None:
-        self.transform:Optional[IWrap[Transform]] = None
+        self.transform: Optional[IWrap[Transform]] = None
         super().__init__(id)
-    
-    def setTransform(self,transform:IWrap[Transform]):
+
+    def setTransform(self, transform: IWrap[Transform]):
         self.transform = transform
-
-
 
 
 class Pause(Error):
@@ -145,91 +140,91 @@ class Pause(Error):
         super().__init__(id, code, reason)
 
 
-
-
 @dataclass
 class ISeqEdge:
-    node:IWrap[Node] 
-    value:Optional[int] 
+    node: IWrap[Node]
+    value: Optional[int]
+
 
 # TODO Make Sure TypeHinting doesn't overlap with the Real Sequence typehint!
 # So I'll add an extra S to it for now...
 class Sequence(Match):
-    def __init__(self, id: IUniqueName,select:str) -> None:
-        self.select = select 
-        self.Edge :Optional[ISeqEdge] = None 
+    def __init__(self, id: IUniqueName, select: str) -> None:
+        self.select = select
+        self.Edge: Optional[ISeqEdge] = None
         super().__init__(id)
 
-    def setEdge(self,node:Node,value:Optional[int]):
-        assert (True if not self.Edge else False)
-        self.Edge = ISeqEdge(node,value)
+    def setEdge(self, node: Node, value: Optional[int]):
+        assert True if not self.Edge else False
+        self.Edge = ISeqEdge(node, value)
 
-    
     def buildSlots(self):
         edge = self.Edge
         yield Slot(edge.node, edge.node)
         for e in super().buildSlots():
-            yield e 
+            yield e
 
 
 class SpanStart(Node):
-    def __init__(self, id: IUniqueName,field:SpanField,callback:IWrap[Span]) -> None:
-        self.field = field 
+    def __init__(
+        self, id: IUniqueName, field: SpanField, callback: IWrap[Span]
+    ) -> None:
+        self.field = field
         self.callback = callback
         super().__init__(id)
-    
 
 
 class SpanEnd(Node):
-    def __init__(self, id: IUniqueName,field:SpanField,callback:IWrap[Span]) -> None:
-        self.field = field 
+    def __init__(
+        self, id: IUniqueName, field: SpanField, callback: IWrap[Span]
+    ) -> None:
+        self.field = field
         self.callback = callback
         super().__init__(id)
 
+
 @dataclass
 class ISingleEdge:
-    key:int 
-    node:IWrap[Node]
-    noAdvance:bool 
-    value:Optional[int] = None 
+    key: int
+    node: IWrap[Node]
+    noAdvance: bool
+    value: Optional[int] = None
 
 
 class Single(Match):
     def __init__(self, id: IUniqueName) -> None:
-        self.privEdges:list[ISingleEdge] = []
+        self.privEdges: list[ISingleEdge] = []
 
         super().__init__(id)
-    
-    def addEdge(self,key:int,node:IWrap[Node],noAdvance:bool,value:Optional[int] = None):
-        self.privEdges.append(ISingleEdge(key,node,noAdvance,value))
+
+    def addEdge(
+        self, key: int, node: IWrap[Node], noAdvance: bool, value: Optional[int] = None
+    ):
+        self.privEdges.append(ISingleEdge(key, node, noAdvance, value))
 
     @property
     def edges(self):
         return self.privEdges
-    
+
     def buildSlots(self):
         for edge in self.privEdges:
-            yield Slot(edge.node,edge.node)
+            yield Slot(edge.node, edge.node)
         return super().buildSlots()
-    
-    
-
-
-
 
 
 @dataclass
 class ITableEdge:
-    keys:list[int]
-    node:IWrap[Node] 
-    noAdvance:bool 
+    keys: list[int]
+    node: IWrap[Node]
+    noAdvance: bool
+
 
 class TableLookup(Match):
     def __init__(self, id: IUniqueName) -> None:
-        self.privEdges:list[ITableEdge] = []
+        self.privEdges: list[ITableEdge] = []
         super().__init__(id)
 
-    def addEdge(self,edge:ITableEdge):
+    def addEdge(self, edge: ITableEdge):
         self.privEdges.append(edge)
 
     def buildSlots(self):
@@ -237,8 +232,7 @@ class TableLookup(Match):
         for e in edge:
             yield Slot(e.node, e.node)
         for e in super().buildSlots():
-            yield e 
-
+            yield e
 
 
 # Ident = Identifier("llComment")

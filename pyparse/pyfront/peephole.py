@@ -1,17 +1,14 @@
 from ..pyfront.front import IWrap
-from ..pyfront.nodes import Node, Empty
+from ..pyfront.nodes import Empty, Node
 
 WrapNode = IWrap[Node]
 WrapList = list[WrapNode]
 
 
-# TODO (Vizonex) Make peephole into 2 seperate functions instead of a class to 
+# TODO (Vizonex) Make peephole into 2 seperate functions instead of a class to
 # Optimize everything down further...
 class Peephole:
-    def __init__(self) -> None:
-        return 
-
-    def optimize(self,root:WrapNode,nodes:WrapList):
+    def optimize(self, root: WrapNode, nodes: WrapList):
         changed = set(nodes)
 
         while len(changed) != 0:
@@ -21,31 +18,28 @@ class Peephole:
             for node in previous:
                 if self.optimizeNode(node):
                     changed.add(node)
-                    
-        while isinstance(root.ref , Empty):
+
+        while isinstance(root.ref, Empty):
             if not root.ref.otherwise or not root.ref.otherwise.noAdvance:
-                break 
+                break
             root = root.ref.otherwise.node
 
-        return root 
+        return root
 
-    def optimizeNode(self,node:WrapNode):
-        changed = False 
+    def optimizeNode(self, node: WrapNode):
+        changed = False
         for slot in node.ref.getSlots():
-
             # TODO Find an Actual way to check that a Node maybe empty...
-            if not isinstance(slot.node.ref,Empty) or not slot.node.ref.otherwise:
+            if not isinstance(slot.node.ref, Empty) or not slot.node.ref.otherwise:
                 continue
 
             otherwise = slot.node.ref.otherwise
 
-            # Node skips so we cannot optimize 
+            # Node skips so we cannot optimize
             if not otherwise.noAdvance:
                 continue
 
             slot.node.ref = otherwise.node.ref
 
-            changed = True 
+            changed = True
         return changed
-
-
