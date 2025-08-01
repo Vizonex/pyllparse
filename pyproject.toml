@@ -1,6 +1,6 @@
 [project]
 name = "llparse"
-version = "0.1.01"
+version = "0.1.1"
 description = "A Parody of llparse written for writing C Parsers with Python"
 readme = "README.md"
 authors = [
