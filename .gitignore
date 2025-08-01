@@ -1,0 +1,6 @@
+# compiled data
+__pycache__
+# .vscode settings
+.vscode
+# virtual enviornments like uv
+.venv
