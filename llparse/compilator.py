@@ -105,6 +105,9 @@ class Code(Generic[T]):
     def build(self, ctx: "Compilation", out: list[str]):
         pass
 
+    def __hash__(self):
+        return hash(self.ref)
+
 
 class External(Code[_frontend.code.External]):
     def build(self, ctx: "Compilation", out: list[str]):
@@ -167,7 +170,7 @@ class Load(Field):
     def doBuild(self, ctx: "Compilation", out: list[str]):
         out.append(f"return {self.field(ctx)};")
 
-
+    
 # BIG ONE
 
 
@@ -409,6 +412,7 @@ class Empty(Node):
     def __init__(self, ref: _frontend.node.Empty) -> None:
         self.ref = ref
         super().__init__(ref)
+    
 
     def doBuild(self, out: list[str]):
         assert self.ref.otherwise

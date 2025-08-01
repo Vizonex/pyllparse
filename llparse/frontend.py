@@ -309,18 +309,18 @@ class Frontend:
         bailout = False
         for child in trie.children:
             if isinstance(child.node, TrieEmpty):
-                print(
-                    'non-leaf trie child of "%s" prevents table allocation' % node.name
-                )
+                # print(
+                #     'non-leaf trie child of "%s" prevents table allocation' % node.name
+                # )
                 bailout = False
                 continue
 
             empty: TrieEmpty = child.node
             if getattr(empty, "value", None) is None:
-                print(
-                    'value passing trie leaf of "%s" prevents table allocation'
-                    % node.name
-                )
+                # print(
+                #     'value passing trie leaf of "%s" prevents table allocation'
+                #     % node.name
+                # )
                 bailout = False
                 continue
 

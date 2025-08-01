@@ -182,9 +182,9 @@ class CCompiler:
             else:
                 # TODO (Vizonex) Merge lines 139 & 140 together in a future update
                 callback = (
-                    f"({info.prefix}__span_cb)"
+                    f"(({info.prefix}__span_cb)"
                     + ctx.spanCbField(span.index)
-                    + f"({callback})"
+                    + f")"
                 )
 
             args = [ctx.stateArg(), posField, f"(const char*) {ctx.endPosArg()}"]
