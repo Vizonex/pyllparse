@@ -1,4 +1,8 @@
 # pyllparse
+[![PyPI version](https://badge.fury.io/py/llparse.svg)](https://badge.fury.io/py/llparse)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/llparse)](https://badge.fury.io/py/llparse)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A python parody of the typescript library llparse.
 
 I take no credit for the orginal work done by indutny and I was originally very nervous about making 
