@@ -26,11 +26,13 @@ class Slot:
         return self.privNode
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class IUniqueName:
     name: str
     originalName: str
 
+    # def __hash__(self):
+    #     return hash(self.name)
 
 @dataclass
 class IOtherwiseEdge:
@@ -81,6 +83,8 @@ class Node:
         if otherwise:
             yield Slot(otherwise.node, otherwise.node)
 
+    def __hash__(self):
+        return hash(self.id)
 
 class Consume(Node):
     def __init__(self, id: IUniqueName, field: str) -> None:
@@ -115,8 +119,11 @@ class Invoke(Node):
 
 
 class Empty(Node):
-    def __init__(self, id: IUniqueName) -> None:
-        super().__init__(id)
+    # def __init__(self, id: IUniqueName) -> None:
+    #     super().__init__(id)
+
+    def __hash__(self):
+        return hash(self.id)
 
 
 class Error(Node):
@@ -172,7 +179,7 @@ class SpanStart(Node):
         self.field = field
         self.callback = callback
         super().__init__(id)
-
+    
 
 class SpanEnd(Node):
     def __init__(

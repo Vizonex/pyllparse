@@ -10,12 +10,12 @@ T = TypeVar("T")
 Signature = TypeVar("Signature", bytes, str)
 
 
-@dataclass
+@dataclass(unsafe_hash=True)
 class IWrap(Generic[T]):
     ref: T
 
-    def __hash__(self) -> int:
-        return hash(self.ref)
+    # def __hash__(self) -> int:
+    #     return hash(self.ref)
 
 
 def toCacheKey(value: Union[int, bool]) -> str:
@@ -33,6 +33,8 @@ class Code:
     cacheKey: str
     name: str
 
+    def __hash__(self):
+        return hash(self.cacheKey)
 
 class External(Code):
     """Inherits from the `Code` class as a subclass of `Code`"""
@@ -44,8 +46,10 @@ class External(Code):
 @dataclass
 class Field(Code):
     """Inherits from `Code`"""
-
     field: str
+    
+    def __hash__(self):
+        return hash(self.cacheKey)
 
 
 class FieldValueError(Exception):
@@ -166,6 +170,9 @@ class Value(External):
 class IUniqueName:
     name: str
     originalName: str
+
+    def __hash__(self):
+        return hash(self.originalName)
 
 
 @dataclass

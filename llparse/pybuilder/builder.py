@@ -1,6 +1,6 @@
 from typing import Literal, Optional, Union
 
-import .pybuilder.main_code as code
+from ..pybuilder import main_code as code
 
 # from pydot import graph_from_dot_data
 

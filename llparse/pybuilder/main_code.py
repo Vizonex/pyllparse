@@ -37,7 +37,8 @@ class Code:
 
         self.signature = signature
         self.name = name
-
+    def __hash__(self):
+        return hash(self.signature + self.name)
 
 class Field(Code):
     def __init__(self, signature: str, name: str, field: str) -> None:
