@@ -52,7 +52,7 @@ there's a good chance they will appericate you for helping over there too and yo
 - Make it easy for me or someone else to find a problem and solve it in typescript after testing it in python
 - Typescript takes 2 commands to run a script with node-js it while python only takes one cutting the time required tremendously...
 - The orginal project was MIT licensed.
-- I wanted to write my own C Parsering tool with llhttp styled callbacks of my own using a language I was the most comfortable with using.
+- I wanted to write my own C Parser tool with llhttp styled callbacks of my own using a language I was the most comfortable with using.
 - I didn't like __Lemon Parser__ or __Yacc__ all that much and a good ide for handling them in Visual Studio Code with error checking to my knowlegde does not exist.
 - The closest thing I got to what I wanted was a project named __NMFU__ shorthand for no memory for you and even I had problems with writing things using that library...
 
