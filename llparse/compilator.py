@@ -170,7 +170,7 @@ class Load(Field):
     def doBuild(self, ctx: "Compilation", out: list[str]):
         out.append(f"return {self.field(ctx)};")
 
-    
+
 # BIG ONE
 
 
@@ -374,7 +374,6 @@ class Consume(Node):
         index = ctx.stateField(self.ref.field)
         ty = ctx.getFieldType(self.ref.field)
 
-
         if ty == "i64":
             pass
         elif ty == "i32":
@@ -412,7 +411,6 @@ class Empty(Node):
     def __init__(self, ref: _frontend.node.Empty) -> None:
         self.ref = ref
         super().__init__(ref)
-    
 
     def doBuild(self, out: list[str]):
         assert self.ref.otherwise
@@ -884,7 +882,7 @@ class Compilation:
     def buildStateEnum(self, out: list[str]):
         # TODO (Vizonex) Give out other names that you could pass as an enum statename
         # this is incase multiple llparse_state_e states are given to compile
-        # example would be mixing llhttp with some other source... 
+        # example would be mixing llhttp with some other source...
         out.append("enum llparse_state_e {")
         out.append(f"  {STATE_ERROR},")
         for stateName in self.stateDict.keys():

@@ -1,5 +1,4 @@
-
-from main_code import Edge, Node
+from ..pybuilder.main_code import Edge, Node
 
 
 class ParserMap:
@@ -9,9 +8,7 @@ class ParserMap:
     def Jsonize(self):
         queue = [self.root]
         seen: set[Node] = set()
-
-
-        while len(queue) != 0:
+        while queue:
             node = queue.pop()
 
             if node in seen:
@@ -33,5 +30,4 @@ class ParserMap:
             return {}
         data = edge.__dict__
         data["node"] = edge.node
-        # print(data["node"].name)
         return data

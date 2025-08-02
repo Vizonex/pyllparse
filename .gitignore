@@ -4,3 +4,5 @@ __pycache__
 .vscode
 # virtual enviornments like uv
 .venv
+# Ignore eggs
+*.egg-info

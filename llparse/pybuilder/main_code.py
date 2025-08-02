@@ -1,6 +1,16 @@
 import re
+import sys
 from dataclasses import dataclass
-from typing import Optional, TypeVar, Union
+from typing import Callable, Literal, Optional, TypeVar, Union
+
+if sys.version_info < (3, 10):
+    from typing_extensions import ParamSpec
+else:
+    from typing import ParamSpec
+
+_P = ParamSpec("_P")
+_T = TypeVar("_T")
+
 
 Signature = ["match", "value"]
 
@@ -18,7 +28,7 @@ def toBuffer(value: Union[str, int]):
 # TODO Add text validataion...
 
 
-def validate_text(init):
+def validate_text(init: Callable[_P, _T]) -> Callable[_P, _T]:
     def is_valid(args, kwargs):
         if kwargs.get("field"):
             field = kwargs["field"]
@@ -32,16 +42,20 @@ def validate_text(init):
 
 
 class Code:
-    def __init__(self, signature: str, name: str) -> None:
-        assert signature in Signature
+    def __init__(self, signature: Literal["match", "value"], name: str) -> None:
+        assert signature in Signature, "Invalid signature %s" % signature
 
         self.signature = signature
         self.name = name
+
     def __hash__(self):
         return hash(self.signature + self.name)
 
+
 class Field(Code):
-    def __init__(self, signature: str, name: str, field: str) -> None:
+    def __init__(
+        self, signature: Literal["match", "value"], name: str, field: str
+    ) -> None:
         self.field = field
         # if re.search(r"[//\s\\]+",field):
         #     raise TypeError(f"Can\'t access internal field from user code because the field: {name} conatins invalid characters")
@@ -49,11 +63,10 @@ class Field(Code):
 
 
 class FieldValue(Field):
-    # NOTE I Added for typehinting Here as it refuses to show up on the ide I'm using (Vizonex)
-
-    def __init__(self, signature: str, name: str, field: str, value: int) -> None:
+    def __init__(
+        self, signature: Literal["match", "value"], name: str, field: str, value: int
+    ) -> None:
         self.value = value
-        self.field = field
         super().__init__(signature, name, field)
 
 
@@ -131,6 +144,10 @@ class Node:
         self.name = name
         self.otherwiseEdge: Optional["Edge"] = None
         self.privEdges: list["Edge"] = []
+
+    def key(self):
+        """reversed for sorting to prevent python from creating artificial randomness"""
+        return self.name
 
     def __hash__(self) -> int:
         return hash(self.name)
@@ -289,7 +306,7 @@ class Edge:
         self.node = node
         self.noAdvance = noAdvance
 
-        self.key = key
+        self.key = key.encode() if isinstance(key, str) else key
         self.value = value
 
         # Validation...

@@ -36,6 +36,7 @@ class Code:
     def __hash__(self):
         return hash(self.cacheKey)
 
+
 class External(Code):
     """Inherits from the `Code` class as a subclass of `Code`"""
 
@@ -46,8 +47,9 @@ class External(Code):
 @dataclass
 class Field(Code):
     """Inherits from `Code`"""
+
     field: str
-    
+
     def __hash__(self):
         return hash(self.cacheKey)
 

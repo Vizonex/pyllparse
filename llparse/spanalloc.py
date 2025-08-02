@@ -1,21 +1,9 @@
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Union
 
+from .errors import Error
 from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
-
-
-class DeadLoop(Exception):
-    """Thrown when this type of loop is detected during complation
-    ```c
-        switch(*p){
-          case dead_loop:
-          dead_loop : {
-            goto dead_loop;
-          } /* Rest in Peace Computer x_x */
-        }
-
-    ```"""
-
 
 SpanSet = set[Span]
 
@@ -72,17 +60,15 @@ class SpanAllocator:
                 # print("SPAN:%s  NODE:%s" % (edgeSpans,edge.node.__dict__))
                 for subSpan in edgeSpans:
                     if subSpan not in spans:
-                        raise AssertionError(
-                            f'Unmatched span end for "{subSpan.callback.name}"'
-                            / f'at "{edge.node.name}", coming from "{node.name}"'
+                        raise Error(
+                            f'unmatched span end for "{subSpan.callback.name}"'
+                            f'at "{edge.node.name}", coming from "{node.name}"'
                         )
 
                 if isinstance(edge.node, SpanEnd):
                     span = _id(edge.node)
                     if span not in spans:
-                        raise AssertionError(
-                            f'Unmatched span end for "{span.callback.name}"'
-                        )
+                        raise Error(f'unmatched span end for "{span.callback.name}"')
 
     def computeActive(self, nodes: list[Node]):
         activeMap: dict[Node, SpanSet] = dict()
@@ -111,7 +97,7 @@ class SpanAllocator:
 
                     if isinstance(edgeNode, SpanStart):
                         if _id(edgeNode) == span:
-                            raise DeadLoop(
+                            raise Error(
                                 f'Detected loop in span {span.callback.name} at "{node.name}"'
                             )
 
@@ -136,14 +122,14 @@ class SpanAllocator:
         return overlap
 
     def _allocate(self, span: Span):
-        if self._colors.get(span):
+        if span in self._colors:
             return self._colors[span]
 
         overlap = self._overlapMap[span]
 
         used: set[int] = set()
         for subSpan in overlap:
-            if self._colors.get(subSpan):
+            if subSpan in self._colors:
                 used.add(self._colors.get(subSpan))
         i = 0
         while i in used:
@@ -160,17 +146,16 @@ class SpanAllocator:
 
         self._overlapMap = overlapDict
 
-        Map = {span: self._allocate(span) for span in spans}
+        colors = {span: self._allocate(span) for span in spans}
 
         concurrency = list()
         for _ in range(self._mx + 1):
             # NOTE : concurrency[i] = [] doesn't work but this does :P
             concurrency.append([])
 
-        for s in spans:
+        for s in sorted(spans, key=lambda s: s.callback.name):
             concurrency[self._allocate(s)].append(s)
-
-        return ISpanAllocatorResult(Map, concurrency, self._mx)
+        return ISpanAllocatorResult(colors, concurrency, self._mx)
 
 
 # TODO (Vizonex) Use Indutny's Mini Http parser to help with testing ours to verify that ours is correct...

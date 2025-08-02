@@ -34,6 +34,7 @@ class IUniqueName:
     # def __hash__(self):
     #     return hash(self.name)
 
+
 @dataclass
 class IOtherwiseEdge:
     node: IWrap["Node"]
@@ -85,6 +86,7 @@ class Node:
 
     def __hash__(self):
         return hash(self.id)
+
 
 class Consume(Node):
     def __init__(self, id: IUniqueName, field: str) -> None:
@@ -179,7 +181,7 @@ class SpanStart(Node):
         self.field = field
         self.callback = callback
         super().__init__(id)
-    
+
 
 class SpanEnd(Node):
     def __init__(
