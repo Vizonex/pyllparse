@@ -1,21 +1,9 @@
+from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Union
 
-from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
 from .errors import Error
-from collections import OrderedDict
-# class DeadLoop(Exception):
-#     """Thrown when this type of loop is detected during complation
-#     ```c
-#         switch(*p){
-#           case dead_loop:
-#           dead_loop : {
-#             goto dead_loop;
-#           } /* Rest in Peace Computer x_x */
-#         }
-
-#     ```"""
-
+from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
 
 SpanSet = set[Span]
 
@@ -80,9 +68,7 @@ class SpanAllocator:
                 if isinstance(edge.node, SpanEnd):
                     span = _id(edge.node)
                     if span not in spans:
-                        raise Error(
-                            f'unmatched span end for "{span.callback.name}"'
-                        )
+                        raise Error(f'unmatched span end for "{span.callback.name}"')
 
     def computeActive(self, nodes: list[Node]):
         activeMap: dict[Node, SpanSet] = dict()
@@ -148,7 +134,7 @@ class SpanAllocator:
         i = 0
         while i in used:
             i += 1
-        
+
         self._mx = max(self._mx, i)
         self._colors[span] = i
         return i
@@ -167,7 +153,7 @@ class SpanAllocator:
             # NOTE : concurrency[i] = [] doesn't work but this does :P
             concurrency.append([])
 
-        for s in sorted(spans, key=lambda s:s.callback.name):
+        for s in sorted(spans, key=lambda s: s.callback.name):
             concurrency[self._allocate(s)].append(s)
         return ISpanAllocatorResult(colors, concurrency, self._mx)
 

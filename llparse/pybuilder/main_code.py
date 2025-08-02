@@ -1,7 +1,7 @@
 import re
 import sys
 from dataclasses import dataclass
-from typing import Callable, Optional, TypeVar, Union, Literal
+from typing import Callable, Literal, Optional, TypeVar, Union
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -53,7 +53,9 @@ class Code:
 
 
 class Field(Code):
-    def __init__(self, signature: Literal["match", "value"], name: str, field: str) -> None:
+    def __init__(
+        self, signature: Literal["match", "value"], name: str, field: str
+    ) -> None:
         self.field = field
         # if re.search(r"[//\s\\]+",field):
         #     raise TypeError(f"Can\'t access internal field from user code because the field: {name} conatins invalid characters")
@@ -61,7 +63,9 @@ class Field(Code):
 
 
 class FieldValue(Field):
-    def __init__(self, signature: Literal["match", "value"], name: str, field: str, value: int) -> None:
+    def __init__(
+        self, signature: Literal["match", "value"], name: str, field: str, value: int
+    ) -> None:
         self.value = value
         super().__init__(signature, name, field)
 

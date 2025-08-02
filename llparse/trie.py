@@ -150,4 +150,3 @@ class Trie:
             children.append(child)
 
         return TrieSingle(children, otherwise)
-

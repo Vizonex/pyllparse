@@ -1,7 +1,12 @@
+import logging
 from typing import Any, Literal, Union
 
 from ..errors import Error
 from ..pybuilder.main_code import Node
+
+logger = logging.getLogger("llparse.pybuilder.loopchecker")
+logger.setLevel(logging.INFO)
+
 
 MAX_VALUE = 256
 WORD_SIZE = 32
@@ -148,26 +153,26 @@ class LoopChecker:
 
         for node in nodes:
             self.clear(nodes)
-            print("checking loops starting from %s" % node.name)
+            logger.debug("checking loops starting from %s" % node.name)
             self.lattice[node] = ANY_VALUE
             # we must eliminate randomness so that error always throw
             changed: set[Node] = set([root])
 
             while changed:
-                print("changed %s" % [n.name for n in changed])
+                logger.debug("changed %s" % [n.name for n in changed])
                 _next = set()
                 for changedNode in changed:
                     self.propagate(changedNode, _next)
                 changed = _next
-            print("lattice stabilized")
+            logger.debug("lattice stabilized")
             self.visit(root, [])
 
     def propagate(self, node: Node, changed: set[Node]):
         value = self.lattice[node]
         terminated = self.terminate(node)
-        print("propagate(%r), initial value %r" % (node.name, value.toJSON()))
+        logger.debug("propagate(%r), initial value %r" % (node.name, value.toJSON()))
         if not terminated.isEqual(EMPTY_VALUE):
-            print("node %s terminates %r" % (node.name, terminated.toJSON()))
+            logger.debug("node %s terminates %r" % (node.name, terminated.toJSON()))
             value = value.subtract(terminated)
             if value.isEqual(EMPTY_VALUE):
                 return
@@ -196,7 +201,7 @@ class LoopChecker:
             keysbyTarget[edge.node] = targetValue
 
         for child, childValue in keysbyTarget.items():
-            print(
+            logger.debug(
                 "node %r propagates %r to %r"
                 % (node.name, childValue.toJSON(), child.name)
             )
@@ -231,7 +236,7 @@ class LoopChecker:
 
     def visit(self, node: Node, path: list[Node]):
         value = self.lattice[node]
-        print("enter %s, value is %s" % (node.name, value.toJSON()))
+        logger.debug("enter %s, value is %s" % (node.name, value.toJSON()))
 
         terminated = (
             EMPTY_VALUE
@@ -240,10 +245,10 @@ class LoopChecker:
         )
 
         if not terminated.isEqual(EMPTY_VALUE):
-            print(f"subtract terminated {terminated}")
+            logger.debug(f"subtract terminated {terminated}")
             value = value.subtract(terminated)
             if value.isEqual(EMPTY_VALUE):
-                print("terminated everything")
+                logger.debug("terminated everything")
                 return
 
         for edge in node.getAllEdges():
@@ -256,7 +261,7 @@ class LoopChecker:
                 edgeValue = edgeValue.intersect(Lattice([edge.key[0]]))
 
             if edgeValue.isEqual(EMPTY_VALUE):
-                # print(edge.node.name + " not recursive")
+                # logger.debug(edge.node.name + " not recursive")
                 continue
 
             def indexOf(path: list[Node], obj: Node) -> int:
@@ -279,4 +284,4 @@ class LoopChecker:
                 )
 
             self.visit(edge.node, path + [edge.node])
-        print("leave %s" % node.name)
+        logger.debug("leave %s" % node.name)
