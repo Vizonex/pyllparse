@@ -39,7 +39,7 @@ do it at your own risk. They maybe incompleted or not throughly stress-tested.
 
 ## New Features
 - Throw me an issue if typescript llparse introduces something new that you want for me or another contributor to try and implement 
-just seeing llparse add new features is nothing but exciting to me.
+just seeing llparse add new features is exciting to me.
 
 - If you want a feature that typescript llparse doesn't have, be sure to try making a pull request over there as well and not just here, 
 there's a good chance they will appericate you for helping over there too and your helping make llhttp better by doing so. :)
