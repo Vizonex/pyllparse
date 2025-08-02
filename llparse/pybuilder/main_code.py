@@ -132,6 +132,10 @@ class Node:
         self.otherwiseEdge: Optional["Edge"] = None
         self.privEdges: list["Edge"] = []
 
+    def key(self):
+        """reversed for sorting to prevent python from creating artificial randomness"""
+        return self.name 
+
     def __hash__(self) -> int:
         return hash(self.name)
 
@@ -289,7 +293,7 @@ class Edge:
         self.node = node
         self.noAdvance = noAdvance
 
-        self.key = key
+        self.key = key.encode() if isinstance(key, str) else key
         self.value = value
 
         # Validation...

@@ -1,6 +1,8 @@
 from typing import Any, Literal, Union
 
 from ..pybuilder.main_code import Node
+from ..errors import Error
+
 
 MAX_VALUE = 256
 WORD_SIZE = 32
@@ -19,17 +21,21 @@ assert MAX_VALUE % WORD_SIZE == 0
 
 class Lattice:
     def __init__(
-        self, value: Union[Any, list[int], Literal["empty"], Literal["any"]]
+        self, value: Union[Any, list[int], bytes, Literal["empty"], Literal["any"]]
     ) -> None:
         self.value = value
         self.words: list[int] = []
 
+
         # allocate space by filling in data with zeros...
+        if value != "any":
+            for _ in range(SIZE):
+                self.words.append(0)
+        else:
+            for _ in range(SIZE):
+                self.words.append(WORD_FILL)
 
-        for _ in range(SIZE):
-            self.words.append(0)
-
-        if len(value) > 1:
+        if isinstance(value, (list, bytes)):
             for single in value:
                 self.add(single)
 
@@ -69,6 +75,9 @@ class Lattice:
             result.words[i] = self.words[i] & other.words[i]
         return result
 
+    def __repr__(self):
+        return f"<Lattice {', '.join(f'{k}: {v!r}' for k, v in self.__dict__.items())}>"
+    
     def subtract(self, other: "Lattice") -> "Lattice":
         result = Lattice("empty")
         for i in range(SIZE):
@@ -76,7 +85,13 @@ class Lattice:
         return result
 
     def isEqual(self, other: "Lattice"):
-        return True if (self.value == other.value) else False
+        if self.toJSON() == other.toJSON():
+            return True
+        else:
+            for i in range(SIZE):
+                if self.words[i] != other.words[i]:
+                    return False
+        return True
 
     def toJSON(self):
         isEmpty = True
@@ -111,7 +126,9 @@ class Reachability:
             if otherwise:
                 queue.append(otherwise.node)
 
-        return list(res)
+        # Reverse the order so that we always 
+        # throw an error on bad configurations...
+        return res
 
 
 EMPTY_VALUE = Lattice("empty")
@@ -124,38 +141,46 @@ class LoopChecker:
         self.terminatedCache: dict[Node, Lattice] = {}
 
     def clear(self, nodes: list[Node]):
-        self.lattice.update({(node, EMPTY_VALUE) for node in nodes})
+        for node in nodes:
+            self.lattice[node] = EMPTY_VALUE
 
     def check(self, root: Node):
         r = Reachability()
         nodes = r.build(root)
+        
         for node in nodes:
             self.clear(nodes)
+            print('checking loops starting from %s' % node.name);
+            
             self.lattice[node] = ANY_VALUE
+            # we must eliminate randomness so that error always throw
             changed: set[Node] = set([root])
-            while len(changed) != 0:
-                next = set()
-                for changedNode in next:
-                    self.propagate(changedNode, next)
-                changed = next
-
-        self.visit(root, list(changed))
+           
+            while changed:
+                print('changed %s' % [n.name for n in changed])
+                _next = set()
+                for changedNode in changed:
+                    self.propagate(changedNode, _next)
+                changed = _next
+            print('lattice stabilized')
+            self.visit(root, [])
 
     def propagate(self, node: Node, changed: set[Node]):
         value = self.lattice[node]
-        terminated: "Lattice" = self.terminate(node, value, changed)
-        if terminated.value == EMPTY_VALUE.value:
+        terminated = self.terminate(node)
+        print('propagate(%r), initial value %r' % (node.name, value.toJSON()))
+        if not terminated.isEqual(EMPTY_VALUE):
+            print('node %s terminates %r' % (node.name, terminated.toJSON()))
             value = value.subtract(terminated)
             if value.isEqual(EMPTY_VALUE):
                 return
 
-        keysbyTarget: dict[Node, Lattice] = dict()
+        keysbyTarget: dict[Node, Lattice] = {}
 
         for edge in node.getAllEdges():
             if not edge.noAdvance:
                 continue
-
-            targetValue: Lattice
+       
             if keysbyTarget.get(edge.node):
                 targetValue = keysbyTarget[edge.node]
             else:
@@ -170,9 +195,11 @@ class LoopChecker:
                     continue
 
                 targetValue = targetValue.union(edgeValue)
+
             keysbyTarget[edge.node] = targetValue
 
         for child, childValue in keysbyTarget.items():
+            print('node %r propagates %r to %r' % (node.name, childValue.toJSON(), child.name))
             self.update(child, childValue, changed)
         # FINISHED!
 
@@ -182,65 +209,72 @@ class LoopChecker:
             return False
         self.lattice[node] = newValue
         changed.add(node)
+        return True
 
-    def terminate(self, node: Node, value: Lattice, changed: set[Node]):
-        if self.terminatedCache.get(node):
+    def terminate(self, node: Node):
+        if node in self.terminatedCache:
             return self.terminatedCache[node]
 
         terminated: list[int] = []
-
         for edge in node.getAllEdges():
             if edge.noAdvance:
                 continue
 
             if edge.key is None or isinstance(edge.key, int):
                 continue
-
+        
             terminated.append(edge.key[0])
-
+        
         result = Lattice(terminated)
         self.terminatedCache[node] = result
         return result
 
     def visit(self, node: Node, path: list[Node]):
         value = self.lattice[node]
-        terminated = (
-            self.terminatedCache[node]
-            if self.terminatedCache.get(node)
-            else EMPTY_VALUE
-        )
-        if terminated.isEqual(EMPTY_VALUE):
+        print('enter %s, value is %s' % (node.name, value.toJSON()))
+
+        terminated = EMPTY_VALUE if node not in self.terminatedCache else self.terminatedCache[node]
+
+
+        if not terminated.isEqual(EMPTY_VALUE):
+            print(f"subtract terminated {terminated}")
             value = value.subtract(terminated)
             if value.isEqual(EMPTY_VALUE):
+                print('terminated everything')
                 return
 
         for edge in node.getAllEdges():
-            if edge.noAdvance:
+            if not edge.noAdvance:
                 continue
             edgeValue = value
-            if not (not edge.key or isinstance(edge.key, int)):
+            if edge.key is None or isinstance(edge.key, int):
+                pass
+            else:
                 edgeValue = edgeValue.intersect(Lattice([edge.key[0]]))
-
+          
             if edgeValue.isEqual(EMPTY_VALUE):
+                # print(edge.node.name + " not recursive")
                 continue
 
-            def indexOf(path: list, obj):
-                try:
-                    return path.index(obj)
-                except Exception:
-                    return -1
-
-            if indexOf(path, node) != -1:
-                if len(path) == 0:
-                    raise Exception(
-                        f'Detected a loop in "{edge.node.name}" though : {edge.node.name}'
+            def indexOf(path: list[Node], obj:Node) -> int:
+                for o in path:
+                    if o.name == obj.name:
+                        return 0
+                return -1
+            
+            if indexOf(path, edge.node) != -1:
+                
+                if len(path) == 1:
+                    raise Error(
+                        f'Detected loop in "{edge.node.name}" through "{edge.node.name}"'
                     )
 
-                raise Exception(
+                raise Error(
                     'Detected loop in "'
                     + edge.node.name
                     + '" through chain '
                     + (" -> ").join(['"' + name.name + '"' for name in path])
                 )
-
-            self.visit(edge.node, path.extend([edge.node]))
+            
+            self.visit(edge.node, path + [edge.node])
+        print('leave %s' % node.name)

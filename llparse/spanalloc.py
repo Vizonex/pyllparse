@@ -2,19 +2,19 @@ from dataclasses import dataclass, field
 from typing import Union
 
 from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
+from .errors import Error
 
+# class DeadLoop(Exception):
+#     """Thrown when this type of loop is detected during complation
+#     ```c
+#         switch(*p){
+#           case dead_loop:
+#           dead_loop : {
+#             goto dead_loop;
+#           } /* Rest in Peace Computer x_x */
+#         }
 
-class DeadLoop(Exception):
-    """Thrown when this type of loop is detected during complation
-    ```c
-        switch(*p){
-          case dead_loop:
-          dead_loop : {
-            goto dead_loop;
-          } /* Rest in Peace Computer x_x */
-        }
-
-    ```"""
+#     ```"""
 
 
 SpanSet = set[Span]
@@ -111,7 +111,7 @@ class SpanAllocator:
 
                     if isinstance(edgeNode, SpanStart):
                         if _id(edgeNode) == span:
-                            raise DeadLoop(
+                            raise Error(
                                 f'Detected loop in span {span.callback.name} at "{node.name}"'
                             )
 
