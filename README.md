@@ -5,7 +5,7 @@
 
 A python parody of the typescript library llparse.
 
-I take no credit for the orginal work done by indutny and I was originally very nervous about making 
+I take no credit for the orginal work done by indutny and the other node-js contributors involved and I was originally very nervous about making 
 this python library that I made public... 
 
 Links to the original library 
@@ -121,3 +121,6 @@ print(c.c)
 open("http_parser.c", "w").write(c.c)
 open("http_parser.h", "w").write(c.header)
 ```
+
+## Video Showcasing this library
+- https://youtu.be/YQOzJ2BghQw
