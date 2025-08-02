@@ -169,7 +169,6 @@ class SpanAllocator:
 
         for s in sorted(spans, key=lambda s:s.callback.name):
             concurrency[self._allocate(s)].append(s)
-        print(concurrency)
         return ISpanAllocatorResult(colors, concurrency, self._mx)
 
 
