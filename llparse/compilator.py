@@ -990,8 +990,7 @@ class Compilation:
             out.append(f"{LABEL_PREFIX}{name} : " + "{")
             for line in lines:
                 out.append(f"  {line}")
-            out.append("  /* UNREACHABLE */;")
-            out.append("  abort();")
+            out.append("  UNREACHABLE;")
             out.append("}")
 
     def buildInternalStates(self, out: list[str]):
@@ -1002,8 +1001,7 @@ class Compilation:
             out.append(f"{LABEL_PREFIX}{name}: " + "{")
             for line in lines:
                 out.append(f"  {line}")
-            out.append("  /* UNREACHABLE */;")
-            out.append("  abort();")
+            out.append("  UNREACHABLE;")
             out.append("}")
 
     def addState(self, state: str, lines: list[str]):
