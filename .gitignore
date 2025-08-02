@@ -6,6 +6,3 @@ __pycache__
 .venv
 # Ignore eggs
 *.egg-info
-# Random textfiles I am using to make sure llparse's debugging
-# can be properly mimiced to ensure what is added has been correctly implemented
-*.txt
