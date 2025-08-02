@@ -4,6 +4,7 @@ from typing import Literal, Optional, Union
 from .enumerator import Enumerator
 from .pybuilder import LoopChecker
 from .pybuilder import builder as source
+
 # from pyfront.namespace import code, node , transform
 from .pyfront import namespace as _frontend
 from .pyfront.front import Identifier, IWrap, SpanField
@@ -17,11 +18,8 @@ DEFAULT_MIN_TABLE_SIZE = 32
 DEFAULT_MAX_TABLE_WIDTH = 4
 
 
-
 WrappedNode = IWrap[_frontend.node.Node]
 WrappedCode = IWrap[_frontend.code.Code]
-
-
 
 
 @dataclass

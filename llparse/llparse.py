@@ -4,8 +4,13 @@ from dataclasses import dataclass
 from typing import Optional
 
 from .C_compiler import CCompiler
-from .frontend import (DEFAULT_MAX_TABLE_WIDTH, DEFAULT_MIN_TABLE_SIZE,
-                       Frontend, IImplementation, source)
+from .frontend import (
+    DEFAULT_MAX_TABLE_WIDTH,
+    DEFAULT_MIN_TABLE_SIZE,
+    Frontend,
+    IImplementation,
+    source,
+)
 from .header import HeaderBuilder
 
 

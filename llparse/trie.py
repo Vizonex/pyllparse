@@ -18,7 +18,6 @@ class IEdge:
         return self.key < object.key
 
 
-
 @dataclass
 class TrieNode:
     """Mainly Used as an Abstract Object for typing"""
@@ -152,14 +151,3 @@ class Trie:
 
         return TrieSingle(children, otherwise)
 
-
-# def test():
-#     t = b"data-to-buffer"
-
-#     for _ in range(2):
-#         t = t[1:4]
-#         print(t)
-
-
-# if __name__ == "__main__":
-#     test()

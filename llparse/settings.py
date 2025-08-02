@@ -25,7 +25,6 @@ SPAN_CALLBACK_MAYBE = "SPAN_CALLBACK_MAYBE"
 MID_POSTFIX = "_settings"
 
 
-
 @dataclass
 class ApiResult:
     header: str

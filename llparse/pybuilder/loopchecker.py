@@ -1,8 +1,7 @@
 from typing import Any, Literal, Union
 
-from ..pybuilder.main_code import Node
 from ..errors import Error
-
+from ..pybuilder.main_code import Node
 
 MAX_VALUE = 256
 WORD_SIZE = 32
@@ -25,7 +24,6 @@ class Lattice:
     ) -> None:
         self.value = value
         self.words: list[int] = []
-
 
         # allocate space by filling in data with zeros...
         if value != "any":
@@ -77,7 +75,7 @@ class Lattice:
 
     def __repr__(self):
         return f"<Lattice {', '.join(f'{k}: {v!r}' for k, v in self.__dict__.items())}>"
-    
+
     def subtract(self, other: "Lattice") -> "Lattice":
         result = Lattice("empty")
         for i in range(SIZE):
@@ -126,7 +124,7 @@ class Reachability:
             if otherwise:
                 queue.append(otherwise.node)
 
-        # Reverse the order so that we always 
+        # Reverse the order so that we always
         # throw an error on bad configurations...
         return res
 
@@ -147,30 +145,29 @@ class LoopChecker:
     def check(self, root: Node):
         r = Reachability()
         nodes = r.build(root)
-        
+
         for node in nodes:
             self.clear(nodes)
-            print('checking loops starting from %s' % node.name);
-            
+            print("checking loops starting from %s" % node.name)
             self.lattice[node] = ANY_VALUE
             # we must eliminate randomness so that error always throw
             changed: set[Node] = set([root])
-           
+
             while changed:
-                print('changed %s' % [n.name for n in changed])
+                print("changed %s" % [n.name for n in changed])
                 _next = set()
                 for changedNode in changed:
                     self.propagate(changedNode, _next)
                 changed = _next
-            print('lattice stabilized')
+            print("lattice stabilized")
             self.visit(root, [])
 
     def propagate(self, node: Node, changed: set[Node]):
         value = self.lattice[node]
         terminated = self.terminate(node)
-        print('propagate(%r), initial value %r' % (node.name, value.toJSON()))
+        print("propagate(%r), initial value %r" % (node.name, value.toJSON()))
         if not terminated.isEqual(EMPTY_VALUE):
-            print('node %s terminates %r' % (node.name, terminated.toJSON()))
+            print("node %s terminates %r" % (node.name, terminated.toJSON()))
             value = value.subtract(terminated)
             if value.isEqual(EMPTY_VALUE):
                 return
@@ -180,7 +177,7 @@ class LoopChecker:
         for edge in node.getAllEdges():
             if not edge.noAdvance:
                 continue
-       
+
             if keysbyTarget.get(edge.node):
                 targetValue = keysbyTarget[edge.node]
             else:
@@ -199,7 +196,10 @@ class LoopChecker:
             keysbyTarget[edge.node] = targetValue
 
         for child, childValue in keysbyTarget.items():
-            print('node %r propagates %r to %r' % (node.name, childValue.toJSON(), child.name))
+            print(
+                "node %r propagates %r to %r"
+                % (node.name, childValue.toJSON(), child.name)
+            )
             self.update(child, childValue, changed)
         # FINISHED!
 
@@ -222,25 +222,28 @@ class LoopChecker:
 
             if edge.key is None or isinstance(edge.key, int):
                 continue
-        
+
             terminated.append(edge.key[0])
-        
+
         result = Lattice(terminated)
         self.terminatedCache[node] = result
         return result
 
     def visit(self, node: Node, path: list[Node]):
         value = self.lattice[node]
-        print('enter %s, value is %s' % (node.name, value.toJSON()))
+        print("enter %s, value is %s" % (node.name, value.toJSON()))
 
-        terminated = EMPTY_VALUE if node not in self.terminatedCache else self.terminatedCache[node]
-
+        terminated = (
+            EMPTY_VALUE
+            if node not in self.terminatedCache
+            else self.terminatedCache[node]
+        )
 
         if not terminated.isEqual(EMPTY_VALUE):
             print(f"subtract terminated {terminated}")
             value = value.subtract(terminated)
             if value.isEqual(EMPTY_VALUE):
-                print('terminated everything')
+                print("terminated everything")
                 return
 
         for edge in node.getAllEdges():
@@ -251,19 +254,18 @@ class LoopChecker:
                 pass
             else:
                 edgeValue = edgeValue.intersect(Lattice([edge.key[0]]))
-          
+
             if edgeValue.isEqual(EMPTY_VALUE):
                 # print(edge.node.name + " not recursive")
                 continue
 
-            def indexOf(path: list[Node], obj:Node) -> int:
+            def indexOf(path: list[Node], obj: Node) -> int:
                 for o in path:
                     if o.name == obj.name:
                         return 0
                 return -1
-            
+
             if indexOf(path, edge.node) != -1:
-                
                 if len(path) == 1:
                     raise Error(
                         f'Detected loop in "{edge.node.name}" through "{edge.node.name}"'
@@ -275,6 +277,6 @@ class LoopChecker:
                     + '" through chain '
                     + (" -> ").join(['"' + name.name + '"' for name in path])
                 )
-            
+
             self.visit(edge.node, path + [edge.node])
-        print('leave %s' % node.name)
+        print("leave %s" % node.name)

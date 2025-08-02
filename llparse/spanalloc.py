@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Union
 
-from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
 from .errors import Error
+from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
 
 # class DeadLoop(Exception):
 #     """Thrown when this type of loop is detected during complation

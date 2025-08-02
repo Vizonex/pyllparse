@@ -29,32 +29,32 @@ class CCompiler:
         out.append("#include <string.h>")
         out.append("")
         # Seems LLParse was updated from /* UNREACHABLE */ abort(); to a Macro, Intresting...
-        out.append('#ifdef __SSE4_2__')
-        out.append(' #ifdef _MSC_VER')
-        out.append('  #include <nmmintrin.h>')
-        out.append(' #else  /* !_MSC_VER */')
-        out.append('  #include <x86intrin.h>')
-        out.append(' #endif  /* _MSC_VER */')
-        out.append('#endif  /* __SSE4_2__ */')
-        out.append('')
+        out.append("#ifdef __SSE4_2__")
+        out.append(" #ifdef _MSC_VER")
+        out.append("  #include <nmmintrin.h>")
+        out.append(" #else  /* !_MSC_VER */")
+        out.append("  #include <x86intrin.h>")
+        out.append(" #endif  /* _MSC_VER */")
+        out.append("#endif  /* __SSE4_2__ */")
+        out.append("")
 
-        out.append('#ifdef __ARM_NEON__')
-        out.append(' #include <arm_neon.h>')
-        out.append('#endif  /* __ARM_NEON__ */')
-        out.append('')
+        out.append("#ifdef __ARM_NEON__")
+        out.append(" #include <arm_neon.h>")
+        out.append("#endif  /* __ARM_NEON__ */")
+        out.append("")
 
-        out.append('#ifdef __wasm__')
-        out.append(' #include <wasm_simd128.h>')
-        out.append('#endif  /* __wasm__ */')
-        out.append('')
+        out.append("#ifdef __wasm__")
+        out.append(" #include <wasm_simd128.h>")
+        out.append("#endif  /* __wasm__ */")
+        out.append("")
 
-        out.append('#ifdef _MSC_VER')
-        out.append(' #define ALIGN(n) _declspec(align(n))')
-        out.append(' #define UNREACHABLE __assume(0)')
-        out.append('#else  /* !_MSC_VER */')
-        out.append(' #define ALIGN(n) __attribute__((aligned(n)))')
-        out.append(' #define UNREACHABLE __builtin_unreachable()')
-        out.append('#endif  /* _MSC_VER */')
+        out.append("#ifdef _MSC_VER")
+        out.append(" #define ALIGN(n) _declspec(align(n))")
+        out.append(" #define UNREACHABLE __assume(0)")
+        out.append("#else  /* !_MSC_VER */")
+        out.append(" #define ALIGN(n) __attribute__((aligned(n)))")
+        out.append(" #define UNREACHABLE __builtin_unreachable()")
+        out.append("#endif  /* _MSC_VER */")
 
         out.append("")
         out.append(
@@ -83,7 +83,7 @@ class CCompiler:
         out.append("}")
         out.append("")
 
-        # TODO (Vizonex) Make llparse_state_t's Name Optional and alterable incase mixed with 
+        # TODO (Vizonex) Make llparse_state_t's Name Optional and alterable incase mixed with
         # llhttp or another parser
         out.append(f"static llparse_state_t {info.prefix}__run(")
         out.append(f"    {info.prefix}_t* {ARG_STATE},")
@@ -182,9 +182,7 @@ class CCompiler:
             else:
                 # TODO (Vizonex) Merge lines 139 & 140 together in a future update
                 callback = (
-                    f"(({info.prefix}__span_cb)"
-                    + ctx.spanCbField(span.index)
-                    + f")"
+                    f"(({info.prefix}__span_cb)" + ctx.spanCbField(span.index) + f")"
                 )
 
             args = [ctx.stateArg(), posField, f"(const char*) {ctx.endPosArg()}"]

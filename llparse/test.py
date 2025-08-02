@@ -5,6 +5,7 @@ from .pybuilder import Builder
 
 # TODO: Remove and make pytest for it.
 
+
 def smaller_test():
     # from compilator import Compilation, ICompilerOptions
     p = Builder()
