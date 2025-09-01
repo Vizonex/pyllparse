@@ -58,7 +58,7 @@ class Trie:
         internalEdges: list[IEdge] = []
 
         for edge in edges:
-            key = str(edge.key) if isinstance(edge.key, int) else edge.key
+            key = chr(edge.key) if isinstance(edge.key, int) else edge.key
             internalEdges.append(
                 IEdge(
                     key=key.encode("utf-8") if isinstance(key, str) else key,
@@ -73,8 +73,8 @@ class Trie:
     def level(self, edges: list[IEdge], path: list[bytes] = []):
         first = edges[0].key
         last = edges[-1].key
-        # print("level",edges, first)
-        if len(edges) == 1 and len(edges[0].key) == 0:
+        # print("level", edges, first)
+        if len(edges) == 1 and (len(edges[0].key) == 0):
             return TrieEmpty(edges[0].node, edges[0].value)
 
         i = 0
@@ -112,17 +112,17 @@ class Trie:
                 + (b", ".join(path).decode("utf-8"))
                 + "]"
             )
-
+        
         keys: dict[int, list[IEdge]] = {}
         otherwise = None
         for edge in edges:
-            if not len(edge.key):
+            if not edge.key:
                 otherwise = TrieEmpty(edge.node, edge.value)
                 continue
 
             key = edge.key[0]
 
-            if keys.get(key):
+            if key in keys:
                 keys[key].append(edge)
             else:
                 keys[key] = [edge]
@@ -146,7 +146,9 @@ class Trie:
                     + "]"
                 )
                 raise TypeError(err)
-            child = ITrieSingleChild(key, noAdvance, self.level(sliced, subPath))
-            children.append(child)
+    
+            children.append(
+                ITrieSingleChild(key, noAdvance, self.level(sliced, subPath))
+            )
 
         return TrieSingle(children, otherwise)

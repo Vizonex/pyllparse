@@ -11,7 +11,7 @@ class Peephole:
     def optimize(self, root: WrapNode, nodes: WrapList):
         changed = set(nodes)
 
-        while len(changed) != 0:
+        while changed:
             previous = changed
             changed = set()
 

@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any, Optional, Callable
 
 from ..pyfront.front import Code, IWrap, Span, SpanField
 from ..pyfront.transform import Transform
@@ -8,7 +8,9 @@ from ..pyfront.transform import Transform
 class Slot:
     # ONLY NODE SHOULD BE ALLOWED TO BE SEEN
 
-    def __init__(self, node: IWrap["Node"], value: Any) -> None:
+    def __init__(
+        self, node: IWrap["Node"], value: Callable[[IWrap["Node"]], None]
+    ) -> None:
         self.privNode = node
         """Same as calling it from get and setting the value etc..."""
         self.privUpdate = value
@@ -19,11 +21,16 @@ class Slot:
     # I spent 4 hours trying to figure this how this could be implemented
     # so this is my only ideal sloution
     def __hash__(self) -> int:
-        return hash(self.privUpdate.ref.id.name)
+        return hash(self.privNode.ref.id.name)
 
     @property
     def node(self):
         return self.privNode
+
+    @node.setter
+    def node(self, value: IWrap["Node"]):
+        self.privNode = value
+        self.privUpdate(value)
 
 
 @dataclass(unsafe_hash=True)
@@ -121,9 +128,6 @@ class Invoke(Node):
 
 
 class Empty(Node):
-    # def __init__(self, id: IUniqueName) -> None:
-    #     super().__init__(id)
-
     def __hash__(self):
         return hash(self.id)
 
@@ -237,16 +241,7 @@ class TableLookup(Match):
         self.privEdges.append(edge)
 
     def buildSlots(self):
-        edge = self.privEdges
-        for e in edge:
-            yield Slot(e.node, e.node)
-        for e in super().buildSlots():
-            yield e
+        for e in self.privEdges:
+            yield Slot(e.node, lambda value: setattr(e, "node", value))
+        yield from super().buildSlots()
 
-
-# Ident = Identifier("llComment")
-
-# node = Node(Ident.id("__On_Pagesum"))
-
-# node2 = Invoke(Ident.id("Check_Flag"),IsEqual("Flag","Check_Flag",0))
-# node2.setOtherwise(IWrap(node),True,0)

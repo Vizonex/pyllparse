@@ -9,9 +9,6 @@ class Debugger:
 
         while queue:
             node = queue.pop()
-            print(node.name)
-            if node.name == "nmethods":
-                print(node.getEdges())
             if edges := node.getEdges():
                 for slot in edges:
                     if slot.node in nodes:
