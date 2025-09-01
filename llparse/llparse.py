@@ -67,12 +67,20 @@ class Compiler:
         properties: list[source.Property],
         header_name: Optional[str] = None,
         Impl: Optional[IImplementation] = IImplementation(),
+        override_llparse_name: bool = False
     ):
         """Creates the C and header file..."""
         info = self.to_frontend(root, properties, Impl)
         hb = HeaderBuilder(self.prefix, self.headerGuard, properties, info.spans)
+        cdata =  CCompiler(header_name, self.debug).compile(info)
+        if override_llparse_name:
+            # sometimes users want to combine parsers together when compiling with C
+            # to make up for conflicts with other parsers example: llhttp
+            # there should be a fair way of compiling everything.
+            cdata = cdata.replace('llparse', self.prefix)
+
         return CompilerResult(
-            CCompiler(header_name, self.debug).compile(info), hb.build()
+           cdata , hb.build()
         )
 
 
@@ -122,6 +130,7 @@ class LLParse(source.Builder):
         maxTableElemWidth: Optional[int] = None,
         minTableSize: Optional[int] = None,
         header_name: Optional[str] = None,
+        override_llparse_name:bool = False
     ):
         """Builds Graph and then compiles the data into C code , returns with the header and C file inside of a Dataclass"""
 
@@ -133,7 +142,8 @@ class LLParse(source.Builder):
             minTableSize if minTableSize else DEFAULT_MIN_TABLE_SIZE,
         )
 
-        return compiler.compile(root, self.properties(), header_name=header_name)
+        return compiler.compile(root, self.properties(), header_name=header_name, override_llparse_name=override_llparse_name)
+    
 
     def to_frontend(
         self,

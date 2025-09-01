@@ -572,7 +572,7 @@ class Single(Node):
             else:
                 ch = f"'{chr(e.key)}'"
 
-            out.append(f"  case {ch}:" + "{")
+            out.append(f"  case {ch}: " + "{")
             tmp: list[str] = []
 
             # For now debug everything....

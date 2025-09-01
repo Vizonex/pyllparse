@@ -12,10 +12,14 @@ from .pyfront.implementation import IImplementation
 from .pyfront.nodes import ITableEdge
 from .pyfront.peephole import Peephole
 from .spanalloc import SpanAllocator
-from .trie import Trie, TrieEmpty, TrieNode, TrieSequence, TrieSingle
+from .trie import Trie, TrieEmpty, TrieNode, TrieSequence, TrieSingle, ITrieSingleChild
 
 DEFAULT_MIN_TABLE_SIZE = 32
 DEFAULT_MAX_TABLE_WIDTH = 4
+
+from logging import getLogger
+
+log = getLogger("llparse.frontend")
 
 
 WrappedNode = IWrap[_frontend.node.Node]
@@ -166,7 +170,7 @@ class Frontend:
         trieNode = trie.build(list(node))
 
         if not trieNode:
-            # print("[DEBUG]", "TrieNode was nonexistant")
+            log.debug("TrieNode was nonexistant")
             return self.implementation.node.Empty(
                 _frontend.node.Empty(self.Id.id(node.name))
             )
@@ -178,7 +182,7 @@ class Frontend:
 
         return children
 
-    def registerNode(self, node: WrappedNode):
+    def registerNode(self, node: WrappedNode) -> None:
         # NOTE NO Implementations required here since this is python!
         if isinstance(
             node.ref,
@@ -287,7 +291,6 @@ class Frontend:
 
             if isinstance(single.ref, _frontend.node.Invoke):
                 for edge in node:
-                    # print(edge.key)
                     single.ref.addEdge(
                         ord(edge.key) if isinstance(edge.key, str) else edge.key,
                         self.translate(edge.node),
@@ -304,52 +307,48 @@ class Frontend:
             return None
 
         targets: dict[source.code.Node, ITableLookupTarget] = {}
-        bailout = False
-        for child in trie.children:
-            if isinstance(child.node, TrieEmpty):
-                # print(
-                #     'non-leaf trie child of "%s" prevents table allocation' % node.name
-                # )
-                bailout = False
-                continue
 
-            empty: TrieEmpty = child.node
-            if getattr(empty, "value", None) is None:
-                # print(
-                #     'value passing trie leaf of "%s" prevents table allocation'
-                #     % node.name
-                # )
-                bailout = False
-                continue
+        def check_child(child: ITrieSingleChild):
+            nonlocal targets
+            if not isinstance(child.node, TrieEmpty):
+                log.debug(
+                    'non-leaf trie child of "%s" prevents table allocation' % node.name
+                )
+                return False
+            empty = child.node
+            if empty.value is not None:
+                log.debug(
+                    'value passing trie leaf of "%s" prevents table allocation'
+                    % node.name
+                )
+                return False
 
             target = empty.node
-            if not targets.get(target):
+            if target not in targets:
                 targets[target] = ITableLookupTarget(
                     keys=[child.key], noAdvance=child.noAdvance, trie=empty
                 )
-                bailout = True
-                break
+                return True
 
             existing = targets[target]
-
             if existing.noAdvance != child.noAdvance:
-                # print('noAdvance mismatch in a trie leaf of "%s" prevents table allocation' % node.name)
-                bailout = False
-                break
-
+                log.debug(
+                    f'noAdvance mismatch in a trie leaf of "{node.name}" prevents '
+                    "table allocation"
+                )
+                return False
             existing.keys.append(child.key)
+            return True
 
-            # TODO: see if breaking or continue block after out is breakout has been determined is good ot not...
-            bailout = True
-            break
-
-        # assert len(trie.children) == len(targets), "Something went wrong"
-        if bailout:
+        if not all([check_child(child) for child in trie.children]):
             return
 
         # Weave width limit for optimization...
-        if len(targets.keys()) >= (1 << self.options["maxTableElemWidth"]):
-            # print('too many different trie targets of "%s" for a table allocation' % node.name)
+        if len(targets) >= (1 << self.options["maxTableElemWidth"]):
+            log.debug(
+                'too many different trie targets of "%s" for a table allocation'
+                % node.name
+            )
             return
 
         table = self.implementation.node.TableLookup(
@@ -358,11 +357,11 @@ class Frontend:
         children.append(table)
 
         # Break Loop
-        if self.Map.get(node):
+        if not self.Map.get(node):
             self.Map[node] = table
 
         for target in targets.values():
-            _next = self.translateTrie(node, target, children)
+            _next = self.translateTrie(node, target.trie, children)
             table.ref.addEdge(
                 ITableEdge(keys=target.keys, noAdvance=target.noAdvance, node=_next)
             )
@@ -408,9 +407,7 @@ class Frontend:
         self, node: source.code.Match, trie: TrieSingle, children: MatchChildren
     ):
         # Check if Tablelookup could be a valid option to Optimze our code up...
-        maybeTable = self.maybeTableLookup(node, trie, children)
-
-        if maybeTable:
+        if maybeTable := self.maybeTableLookup(node, trie, children):
             return maybeTable
 
         single = self.implementation.node.Single(
@@ -432,8 +429,7 @@ class Frontend:
                 value=child.node.value if isinstance(child.node, TrieEmpty) else None,
             )
 
-        otherwise = trie.otherwise
-        if otherwise:
+        if otherwise := trie.otherwise:
             single.ref.setOtherwise(
                 self.translateTrie(node, otherwise, children), True, otherwise.value
             )
@@ -442,8 +438,9 @@ class Frontend:
     def translateSpanCode(self, code: source.code._Span):
         return self.translateCode(code)
 
-    # TODO Vizonex Maybe better typehining can be used in this function alone....
-    def translateCode(self, code: source.code.Code):
+    def translateCode(
+        self, code: source.code.Code
+    ):
         """Translates Builder Classes to Frontend Classes..."""
 
         prefixed = self.codeId.id(code.name).name
@@ -499,9 +496,8 @@ class Frontend:
         else:
             raise Exception(f'UnSupported code:"{code.name}" type: "{type(code)}"')
 
-        if self.codeCache.get(res.ref.cacheKey):
-            return self.codeCache[res.ref.cacheKey]
-
+        if _res := self.codeCache.get(res.ref.cacheKey):
+            return _res
         self.codeCache[res.ref.cacheKey] = res
         return res
 
