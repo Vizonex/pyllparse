@@ -14,9 +14,6 @@ Signature = TypeVar("Signature", bytes, str)
 class IWrap(Generic[T]):
     ref: T
 
-    # def __hash__(self) -> int:
-    #     return hash(self.ref)
-
 
 def toCacheKey(value: Union[int, bool]) -> str:
     if isinstance(value, int):

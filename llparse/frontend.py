@@ -244,6 +244,10 @@ class Frontend:
 
         elif isinstance(node, source.code.Match):
             result = self.translateMatch(node)
+
+        elif isinstance(node, source.node.Int):
+            result = self.translateInt(node)
+
         else:
             raise Exception(f'Unknown Node Type for :"{node.name}" {type(node)}')
 
@@ -251,24 +255,26 @@ class Frontend:
 
         if isinstance(result, list):
             # result:list[WrappedNode]
-            assert isinstance(node, source.code.Match)
+
+            assert isinstance(node, (source.code.Match, source.node.Int))
             _match = node
+        
+            assert otherwise, (f'Node "{node.name}" has no ".otherwise()"')
 
-            if not otherwise:
-                raise Exception(f'Node "{node.name}" has no ".otherwise()"')
-
-            else:
+            if isinstance(node, source.node.Match):
                 for child in result:
                     if not child.ref.otherwise:
                         child.ref.setOtherwise(
                             self.translate(otherwise.node), otherwise.noAdvance
                         )
+                transform = self.translateTransform(_match.getTransform())
+                for child in result:
+                    # TODO Vizonex : This might break , be sure to make a workaround function here...
+                    child.ref.setTransform(transform)
 
-            transform = self.translateTransform(_match.getTransform())
-            for child in result:
-                # TODO Vizonex : This might break , be sure to make a workaround function here...
-                child.ref.setTransform(transform)
-
+            
+            else:
+                result[-1].ref.setOtherwise(self.translate(otherwise.node), otherwise.noAdvance)
             assert len(result) >= 1
             return result[0]
 
@@ -299,6 +305,23 @@ class Frontend:
                 assert len(list(node)) == 0
 
             return single
+        
+    def translateInt(self, node: source.node.Int) -> list[IWrap[_frontend.node.Int]]:
+        inner = _frontend.node.Int(self.Id.id(node.name), node.field, node.bits, node.signed, node.little_endian, 0)
+        result = [self.implementation.node.Int(inner)]
+        # front is to avoid overlapping with python's functions (aka next)
+        front = self.Map[node] = result[0]
+        
+        for offset in range(1, node.bits):
+            unique_name = self.Id.id(f"{node.name}_byte{offset + 1}")
+            inner = _frontend.node.Int(unique_name, node.field, node.bits, node.signed, node.little_endian, offset)
+            outer = self.implementation.node.Int(inner)
+            result.append(outer)
+            # Integers will advance since they are unpacking values...
+            front.ref.setOtherwise(outer, False)
+            front = result[-1]
+        return result
+
 
     def maybeTableLookup(
         self, node: source.code.Match, trie: TrieSingle, children: MatchChildren

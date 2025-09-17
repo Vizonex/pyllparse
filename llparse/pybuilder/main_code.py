@@ -92,6 +92,8 @@ class _Match(Code):
         super().__init__("match", name)
 
 
+
+
 @dataclass
 class IMulAddOptions:
     base: int
@@ -243,6 +245,39 @@ class Invoke(Node):
                 )
             self.addEdge(Edge(targetNode, True, numKey, None))
 
+
+
+# Not in llparse node-js (yet) But I wanted to implement 
+# this into my version since I am making a very important 
+# http2 frame parser
+
+# SEE: https://github.com/nodejs/llparse-frontend/pull/1
+
+def build_name(field:str, bits: int, signed:bool, little_endian:bool) -> str:
+    result = f"{field}_{'int' if signed else 'uint'}_{bits * 8}"
+    if bits > 1:
+        return result + ('_le' if little_endian else 'be')
+    else:
+        return result
+
+
+class Int(Node):
+    """Used for parsing bytes via unpacking"""
+    def __init__(self, field: str, bits: int, signed: bool, little_endian: bool) -> None:
+        """
+        :param field: State's property name
+        :param bits: Number of bits to use
+        :param signed: Number is signed 
+        :param little_endian: true if le, false if be
+        """
+        if bits < 0:
+            raise ValueError("bits should be a positive integer")
+        self.field =  field
+        self.bits = bits
+        self.signed = signed
+        self.little_endian  = little_endian
+        super().__init__(build_name(field, bits, signed, little_endian))
+    
 
 # -- Transfroms --
 

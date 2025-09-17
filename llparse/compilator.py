@@ -337,7 +337,7 @@ class Node:
         out: list[str],
         node: IWrap[_frontend.node.Node],
         noAdvance: bool,
-        value: Optional[int],
+        value: Optional[int] = None,
     ):
         ctx = self.compilation
         target = ctx.unwrapNode(node).build(ctx)
@@ -512,7 +512,8 @@ class Sequence(Node):
 
     def doBuild(self, out: list[str]):
         ctx = self.compilation
-
+        # TODO: llparse_match_t could be easily changed around to 
+        # Something that can't be overlapped with when compiled with other parsers...
         out.append("llparse_match_t match_seq;")
         out.append("")
 
@@ -639,7 +640,7 @@ class SpanEnd(Node):
         # Invoke callback
         callback = ctx.buildCode(ctx.unwrapCode(self.ref.callback, True))
 
-        out.append(f"err = {callback}({ctx.stateArg()}, start,{ctx.posArg()});")
+        out.append(f"err = {callback}({ctx.stateArg()}, start, {ctx.posArg()});")
 
         out.append("if (err != 0) {")
         tmp = []
@@ -674,6 +675,163 @@ class SpanEnd(Node):
             + f"(void*) (intptr_t) {STATE_PREFIX + resumptionTarget if not resumptionTarget.startswith(STATE_PREFIX) else resumptionTarget};"
         )
         out.append(f"return {STATE_ERROR};")
+
+
+# Based off arthurschreiber's work with Indutny's Tips and requests added to the mix.
+
+# 0x80 I8
+# 0x8000 I16
+# 0x800000 I24
+# 0x1000000 U24
+
+class Int(Node):
+    def __init__(self, ref: _frontend.node.Int):
+        super().__init__(ref)
+        self.ref = ref
+        self.offset = ref.byteOffset
+    # I'm going to deviate from arthurschreiber's work a bit with indutny's suggestions.
+    # we should really be using bitwise operators like rshift and lshift
+    @property
+    def pair(self):
+        return self.compilation, self.compilation.stateField(self.ref.field)
+
+    def readInt8(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        out.append(f"{index} = ((*{ctx.posArg()}) & 0x80);")
+    
+    def readUInt8(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        out.append(f"{index} = (*{ctx.posArg()});")
+    
+    # LITTLE ENDIAN
+
+    def readInt16LE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            # Since BE Belongs to performing << aka left shifts we do >> right shifts 
+            out.append(f"{index} = ({index} >> 8) | ((*{ctx.posArg()}) & 0x80);")
+
+    def readUInt16LE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} >> 8) | (*{ctx.posArg()});")
+
+    def readInt24LE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        elif self.offset == 1:
+            out.append(f"{index} = ({index} >> 8) | (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} >> 8) | ((*{ctx.posArg()}) & 0x80);")
+
+    def readUInt24LE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} >> 8) | (*{ctx.posArg()});")
+ 
+    def readInt32LE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        elif self.offset in (1, 2):
+            out.append(f"{index} = ({index} >> 8) | (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} >> 8) | ((*{ctx.posArg()}) & 0x80);")
+
+    def readUInt32LE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} >> 8) | (*{ctx.posArg()});")
+    
+    # BIG ENDIAN 
+    
+    def readInt16BE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            # Since LE Belongs to >> we do "<<" instead 
+            out.append(f"{index} = ({index} << 8) | ((*{ctx.posArg()}) & 0x80);")
+    
+    def readUInt16BE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} << 8) | (*{ctx.posArg()});")
+
+    def readInt24BE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        elif self.offset == 1:
+            out.append(f"{index} = ({index} << 8) | (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} << 8) | ((*{ctx.posArg()}) & 0x80);")
+
+    def readUInt24BE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} << 8) | (*{ctx.posArg()});")
+ 
+    def readInt32BE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        elif self.offset in (1, 2):
+            out.append(f"{index} = ({index} << 8) | (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} << 8) | ((*{ctx.posArg()}) & 0x80);")
+
+    def readUInt32BE(self, out: list[str]) -> None:
+        ctx, index = self.pair
+        if self.offset == 0:
+            out.append(f"{index} = (*{ctx.posArg()});")
+        else:
+            out.append(f"{index} = ({index} << 8) | (*{ctx.posArg()});")
+ 
+        
+    def doBuild(self, out:list[str]):
+        self.prologue(out)
+        # I'm still supporting 3.9 but I plan to drop it's support in favor of match case soon...
+        bits = self.ref.bits
+        
+        if self.compilation.getFieldType(self.ref.field) == 'ptr':
+            raise ValueError(f'property {self.ref.field} should not use pointers but it was given \"ptr\"')
+
+        if bits == 1:
+            self.readInt8(out) if self.ref.signed else self.readUInt8(out)
+        elif bits == 2:
+            if self.ref.littleEndian:
+                self.readInt16LE(out) if self.ref.signed else self.readUInt16LE(out)
+            else:
+                self.readInt16BE(out) if self.ref.signed else self.readUInt16BE(out)
+        elif bits == 3:
+            if self.ref.littleEndian:
+                self.readInt24LE(out) if self.ref.signed else self.readUInt24LE(out)
+            else:
+                self.readInt24BE(out) if self.ref.signed else self.readUInt24BE(out)
+        else:
+            if self.ref.littleEndian:
+                self.readInt32LE(out) if self.ref.signed else self.readUInt32LE(out)
+            else:
+                self.readInt32BE(out) if self.ref.signed else self.readUInt32BE(out)
+        # TODO: uint64 & int64
+        
+        self.tailTo(out, self.ref.otherwise.node, self.ref.otherwise.noAdvance, None)
+
+
 
 
 MAX_CHAR = 0xFF
@@ -1096,6 +1254,8 @@ class Compilation:
             r = Sequence(ref)
         elif isinstance(ref, _frontend.node.TableLookup):
             r = TableLookup(ref)
+        elif isinstance(ref, _frontend.node.Int):
+            r = Int(ref)
         else:
             raise TypeError(
                 f'refrence "{ref}" is an Invalid Code Type , TypeName:"{ref.__class__.__name__}"'
