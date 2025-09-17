@@ -501,7 +501,7 @@ class Pause(Error):
 
         assert self.ref.otherwise
         otherwise = ctx.unwrapNode(self.ref.otherwise.node)
-        out.append(f"{ctx.currentField()} = (void*) (intptr_t) {otherwise.cachedDecel};")
+        out.append(f"{ctx.currentField()} = (void*) (intptr_t) {otherwise.cachedDecel or ('s_n_' + otherwise.ref.id.name)};")
         out.append(f"return {STATE_ERROR};")
 
 
