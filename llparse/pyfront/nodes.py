@@ -153,6 +153,26 @@ class Pause(Error):
         super().__init__(id, code, reason)
 
 
+# Not in llparse node-js (yet) But I wanted to implement 
+# this into my version since I am making a very important 
+# http2 frame parser
+
+# SEE: https://github.com/nodejs/llparse-frontend/pull/1
+
+@dataclass
+class Int(Node):
+    field: str
+    bits: int
+    signed: bool
+    littleEndian: bool
+    byteOffset: int
+
+    def __hash__(self):
+        return hash(self.id)
+
+
+
+
 @dataclass
 class ISeqEdge:
     node: IWrap[Node]

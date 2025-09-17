@@ -1,7 +1,8 @@
 from typing import Literal, Optional, Union
-
 from ..pybuilder import main_code as code
 
+# typehinting node and code (TODO: Vizonex) Lets seperate the modules soon...
+node = code
 # from pydot import graph_from_dot_data
 
 
@@ -316,3 +317,38 @@ class Builder:
     def properties(self) -> list[Property]:
         """Return list of all allocated properties in parser's state."""
         return list(self.privProperties.values())
+
+    def intBE(self, field: str, bits:int):
+        """
+        :param field: State's property name
+        :param bits: Number of bits to use
+        """
+        return code.Int(field, bits, True, False)
+
+    def intLE(self, field: str, bits: int):
+        """
+        return a node for unpacking arrays to integers
+
+        :param field: State's property name
+        :param bits: Number of bits to use
+        """
+        return code.Int(field, bits, True, True)
+
+    def uintBE(self, field: str, bits: int):
+        """
+        return a node for unpacking arrays to integers
+        
+        :param field: State's property name
+        :param bits: Number of bits to use
+        """
+        return code.Int(field, bits, False, False)
+
+    def uintLE(self, field: str, bits: int):
+        """
+        return a node for unpacking arrays to integers
+        
+        :param field: State's property name
+        :param bits: Number of bits to use
+        """
+        return code.Int(field, bits, False, True)
+    

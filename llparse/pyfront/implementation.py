@@ -37,6 +37,9 @@ class INodeImplementation:
 
     def TableLookup(self, n: node.TableLookup):
         return IWrap(n)
+    
+    def Int(self, n: node.Int):
+        return IWrap(n)
 
 
 class ITransformImplementation:

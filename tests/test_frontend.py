@@ -22,4 +22,14 @@ def test_build_tables():
     assert "lookup_table" in p.build(start).c
 
 
+def test_pausing():
+    # Ensure frotentend LoopChecker does not mark off against Pausing
+    p = LLParse("lltest")
+    s = p.node('start')
+    s2 = p.node('start2')
+    s.match('p', p.pause(1, 'parser was asked to pause').otherwise(s2)).skipTo(s)
+    s2.match('p', p.pause(2, 'parser was asked to pause again').otherwise(s)).skipTo(s2)
+    
+    p.build(s)
 
+    
