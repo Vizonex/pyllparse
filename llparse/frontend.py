@@ -211,7 +211,7 @@ class Frontend:
             result = nodeImpl.Error(_frontend.node.Error(ID(), node.code, node.reason))
 
         elif isinstance(node, source.code.Pause):
-            result = nodeImpl.Pause(_frontend.node.Error(ID(), node.code, node.reason))
+            result = nodeImpl.Pause(_frontend.node.Pause(ID(), node.code, node.reason))
 
         elif isinstance(node, source.code.Comsume):
             result = nodeImpl.Consume(_frontend.node.Consume(ID(), node.field))
