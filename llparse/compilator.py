@@ -501,7 +501,7 @@ class Pause(Error):
 
         assert self.ref.otherwise
         otherwise = ctx.unwrapNode(self.ref.otherwise.node)
-        out.append(f"{ctx.currentField()} = (void*) (intptr_t) {otherwise};")
+        out.append(f"{ctx.currentField()} = (void*) (intptr_t) {otherwise.cachedDecel};")
         out.append(f"return {STATE_ERROR};")
 
 
@@ -1235,13 +1235,14 @@ class Compilation:
             r = Consume(ref)
         elif isinstance(ref, _frontend.node.Empty):
             r = Empty(ref)
+        elif isinstance(ref, _frontend.node.Pause):
+            r = Pause(ref)
+
         elif isinstance(ref, _frontend.node.Error):
             r = Error(ref)
         elif isinstance(ref, _frontend.node.Invoke):
             r = Invoke(ref)
-        elif isinstance(ref, _frontend.node.Pause):
-            r = Pause(ref)
-
+        
         elif isinstance(ref, _frontend.node.SpanStart):
             r = SpanStart(ref)
 
