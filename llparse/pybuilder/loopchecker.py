@@ -252,7 +252,7 @@ class LoopChecker:
                 return
 
         for edge in node.getAllEdges():
-            if edge.noAdvance:
+            if not edge.noAdvance:
                 continue
             edgeValue = value
             if edge.key is None or isinstance(edge.key, int):
