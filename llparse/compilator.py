@@ -273,6 +273,13 @@ class Update(Field):
         out.append(f"{self.field(ctx)} = {self.ref.value};")
         out.append("return 0;")
 
+class Operator(Field):
+    def __init__(self, ref: _frontend.code.Operator):
+        self.ref = ref
+    
+    def doBuild(self, ctx: "Compilation", out: list[str]):
+        out.append(f'return {self.field(ctx)} {self.ref.op} {self.ref.value};')
+
 
 @dataclass
 class INodeEdge:
@@ -1218,6 +1225,8 @@ class Compilation:
             r = Test(ref)
         elif isinstance(ref, _frontend.code.Update):
             r = Update(ref)
+        elif isinstance(ref, _frontend.code.Operator):
+            r = Operator(ref)
         else:
             raise Exception(
                 f'refrence "{ref.name}" is an Invalid Code Type , TypeName:"{ref.__class__.__name__}"'

@@ -54,7 +54,7 @@ def test_allocate_overlapping_spans(span_alloc: tuple[SpanAllocator, Builder]) -
     assert res.max == 1
 
     assert len(res.concurrency) == 2
-    
+
     # python loves to shuffle things on me :/ but both exist nevertheless
     assert span2 in res.concurrency[0] or span1 in res.concurrency[0]
     assert span1 in res.concurrency[1] or span2 in res.concurrency[1]
@@ -106,16 +106,22 @@ def test_should_throw_on_loops(span_alloc: tuple[SpanAllocator, Builder]) -> Non
     with pytest.raises(Error, match=r"unmatched.*on_data"):
         sa.allocate(start)
 
-def test_propagate_through_invoke_map(span_alloc:tuple[SpanAllocator, Builder]):
+
+def test_propagate_through_invoke_map(span_alloc: tuple[SpanAllocator, Builder]):
     sa, b = span_alloc
-    start = b.node('start')
-    span = b.span(b.code.span('llparse__on_data'))
+    start = b.node("start")
+    span = b.span(b.code.span("llparse__on_data"))
 
-    b.property('i8', 'custom')
+    b.property("i8", "custom")
 
-    start.otherwise(b.invoke(b.code.load('custom'), {
-      0: span.end().skipTo(start),
-    }, span.end().skipTo(start)))
+    start.otherwise(
+        b.invoke(
+            b.code.load("custom"),
+            {
+                0: span.end().skipTo(start),
+            },
+            span.end().skipTo(start),
+        )
+    )
 
     sa.allocate(span.start(start))
-    

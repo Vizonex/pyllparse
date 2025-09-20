@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Literal, Optional, Union
+from typing import Literal, Optional, Union, TypeVar
 
 from .enumerator import Enumerator
 from .pybuilder import LoopChecker
@@ -21,6 +21,9 @@ from logging import getLogger
 
 log = getLogger("llparse.frontend")
 
+
+CodeT = TypeVar('CodeT', bound=source.code.Code)
+NodeT = TypeVar('NodeT', bound=source.node.Node)
 
 WrappedNode = IWrap[_frontend.node.Node]
 WrappedCode = IWrap[_frontend.code.Code]
@@ -462,7 +465,7 @@ class Frontend:
         return self.translateCode(code)
 
     def translateCode(
-        self, code: source.code.Code
+        self, code: CodeT
     ):
         """Translates Builder Classes to Frontend Classes..."""
 
@@ -474,7 +477,13 @@ class Frontend:
             res = codeImpl.IsEqual(
                 _frontend.code.IsEqual(prefixed, code.field, code.value)
             )
-
+        # custom thing I added in 0.1.6 I encourage the typescript 
+        # maintainers and developers of llparse to look into this :)
+        elif isinstance(code, source.code.Operator):
+            res = codeImpl.Operator(_frontend.code.Operator(
+                prefixed, code.field, code.value, code.op
+            ))
+        
         elif isinstance(code, source.code.Load):
             res = codeImpl.Load(_frontend.code.Load(prefixed, code.field))
 
