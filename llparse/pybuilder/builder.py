@@ -36,10 +36,13 @@ class Creator:
     def __init__(self) -> None:
         return
 
-    # TODO Make Sure python llparse match api is compatable with 3.10 and above...
+    # TODO (Vizonex): I think we could add a node for property copying from a to b
+    # and addition and subtraction nodes like a counter unlike consume and I think the typescript
+    # Library could have the same features as us. I seem to come up with new nodes often
+    # which is a rare thing to see. :)
 
     # Thank goodness I can do C example documentation in here :) - Vizonex
-    def match(self, name: str):
+    def match(self, name: str) -> code.Match:
         """Create an external callback that **has no** `value` argument.
 
         This callback can be used in all `Invoke` nodes except those that are
@@ -53,14 +56,11 @@ class Creator:
 
         Where `llparse_t` is parser state's type name.
 
-        Parameters
-        ----------
-        ----------
-        - `name` External function name.
+        :param name: External function name.
         """
         return code._Match(name)
 
-    def value(self, name: str):
+    def value(self, name: str) -> code.Value:
         """
 
         Create an external callback that **has** `value` argument.
@@ -76,15 +76,12 @@ class Creator:
 
         Where `llparse_t` is parser state's type name.
 
-        Parameters
-        ----------
-        ----------
-        - `name` External function name.
+        :param name: External function name.
 
         """
         return code.Value(name)
 
-    def span(self, name: str):
+    def span(self, name: str) -> code._Span:
         """Create an external span callback.
 
         This callback can be used only in `Span` constructor.
@@ -100,30 +97,25 @@ class Creator:
 
         NOTE: non-zero return value is treated as resumable error.
 
-        Parameters
-        ----------
-        - `name` External function name.
+        :param name: External function name.
         """
         return code._Span(name)
 
-    def store(self, field: str):
+    def store(self, field: str) -> code.Store:
         """
         Intrinsic operation. Stores `value` from `.select()` node into the state's
         property with the name specified by `field`, returns zero.
 
         ```c
-           state[field] = value;
-           return 0;
+        state[field] = value;
+        return 0;
         ```
 
-        Parameters
-        ----------
-
-        - `field`  Property name
+        :param field:  Property name
         """
         return code.Store(field)
 
-    def load(self, field: str):
+    def load(self, field: str) -> code.Load:
         """Intrinsic operation. Loads and returns state's property with the name
         specified by `field`.
 
@@ -132,15 +124,14 @@ class Creator:
         ```c
            return state[field];
         ```
-        Parameters
-        ----------
-        `field`  Property name.
+
+        :param field: Property name.
         """
         return code.Load(field)
 
     def mulAdd(
         self, field: str, base: int, max: Optional[int] = None, signed: bool = False
-    ):
+    ) -> code.MulAdd:
         """Intrinsic operation. Takes `value` from `.select()`, state's property
         with the name `field` and does:
         ```c
@@ -155,24 +146,21 @@ class Creator:
             - 0 - success
             - 1 - overflow
 
-        Parameters
-        ----------
-        ----------
         Unlike in Typescript, The values of `IMulAddOptions` have been added here
         since it's Python , not Typescript
 
-        - `field`    Property name
+        :param field:    Property name
 
-        - `base` Value to multiply the property with in the first step
+        :param base: Value to multiply the property with in the first step
 
-        - `max` Maximum value of the property. If at any point of computation the
+        :param max: Maximum value of the property. If at any point of computation the
            intermediate result exceeds it - `mulAdd` returns 1 (overflow).
 
-        - `signed` If `true` - all arithmetics perfomed by `mulAdd` will be signed.
+        :param signed: If `true` - all arithmetics perfomed by `mulAdd` will be signed.
            Default value: `false`"""
         return code.MulAdd(field, base, max, signed)
 
-    def update(self, field: str, value: int):
+    def update(self, field: str, value: int) -> code.Update:
         """
 
         Intrinsic operation. Puts `value` integer into the state's property with
@@ -181,74 +169,118 @@ class Creator:
           state[field] = value;
           return 0;
 
-        Parameters
-        ----------
-        ----------
-        - `field` Property name
-        - `value` Integer value to be stored into the property.
+        :param field: Property name
+        :param value: Integer value to be stored into the property.
         """
         return code.Update(field, value)
 
-    def isEqual(self, field: str, value: str):
+    def isEqual(self, field: str, value: str) -> code.IsEqual:
         """Intrinsic operation.
 
-           state[field] &= value
-           return 0;
+        ```c
+        state[field] &= value
+        return 0;
+        ```
 
-        Parameters
-        ----------
-        ----------
-        - `field` Property name
-        - `value` Integer value
+        :param field: Property name
+        :param value: Integer value
         """
         return code.IsEqual(field, value)
 
     # NOTE : Unlike in typescript lowercase "and" & "or"
     # cannot be used this might have to be
     # throughly addressed - Vizonex
-    def And(self, field: str, value: int):
+    def And(self, field: str, value: int) -> code.And:
         """Intrinsic operation.
 
-          state[field] &= value
-          return 0;
+        ```c
+        state[field] &= value
+        return 0;
+        ```
 
-        Parameters
-        ----------
-        ----------
-        - `field` Property name
-        - `value` Integer value"""
+        :param field: Property name
+        :param value: Integer value
+        """
 
         return code.And(field, value)
 
-    def Or(self, field: str, value: int):
+    def Or(self, field: str, value: int) -> code.Or:
         """
         Intrinsic operation.
 
            state[field] |= value
            return 0;
 
-        Parameters
-        ----------
-        ----------
-        - `field` Property name
-        - `value` Integer value
+        :param field: Property name
+        :param value: Integer value
 
         This will allow us to set our own flags at will
         """
         return code.Or(field, value)
 
-    def test(self, field: str, value: str):
+    def test(self, field: str, value: int) -> code.Test:
         """Intrinsic operation.
 
+        ```c
         return (state[field] & value) == value ? 1 : 0;
+        ```
 
-        Parameters
-        ----------
-        ----------
-        - `field` Property name
-        - `value` Integer value
+        :param field: Property name
+        :param value: Integer value
         """
         return code.Test(field, value)
+
+    def is_gt(self, field: str, value: int) -> code.Operator:
+        """Intrinsic operation.
+
+        ```c
+        return (state[field] > value);
+        ```
+
+        :param field: Property name
+        :param value: Integer value
+        """
+
+        return code.Operator(">", field, value)
+
+    def is_lt(self, field: str, value: int) -> code.Operator:
+        """Intrinsic operation.
+
+        ```c
+        return (state[field] < value);
+        ```
+
+        :param field: Property name
+        :param value: Integer value
+        """
+
+        return code.Operator("<", field, value)
+
+    def is_le(self, field: str, value: int) -> code.Operator:
+        """Intrinsic operation.
+
+        ```c
+        return (state[field] <= value);
+        ```
+
+        :param field: Property name
+        :param value: Integer value
+        """
+
+        return code.Operator("<=", field, value)
+
+    def is_ge(self, field: str, value: int) -> code.Operator:
+        """Intrinsic operation.
+
+        ```c
+        return (state[field] >= value);
+        ```
+
+        :param field: Property name
+        :param value: Integer value
+        """
+
+        return code.Operator(">=", field, value)
 
 
 # NOTE: I have Nodes and Codes in the same file called `main_code`
@@ -318,7 +350,7 @@ class Builder:
         """Return list of all allocated properties in parser's state."""
         return list(self.privProperties.values())
 
-    def intBE(self, field: str, bits:int):
+    def intBE(self, field: str, bits: int):
         """
         :param field: State's property name
         :param bits: Number of bits to use
@@ -337,7 +369,7 @@ class Builder:
     def uintBE(self, field: str, bits: int):
         """
         return a node for unpacking arrays to integers
-        
+
         :param field: State's property name
         :param bits: Number of bits to use
         """
@@ -346,9 +378,8 @@ class Builder:
     def uintLE(self, field: str, bits: int):
         """
         return a node for unpacking arrays to integers
-        
+
         :param field: State's property name
         :param bits: Number of bits to use
         """
         return code.Int(field, bits, False, True)
-    

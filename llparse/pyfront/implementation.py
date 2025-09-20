@@ -60,6 +60,7 @@ class ICodeImplementation:
     def __init__(self) -> None:
         return
 
+    # TODO: (Vizonex) Transform these functions to lamdas instead to conserve space...
     def And(self, c: code.And):
         return IWrap(c)
 
@@ -91,6 +92,9 @@ class ICodeImplementation:
         return IWrap(c)
 
     def Value(self, c: code.Value):
+        return IWrap(c)
+    
+    def Operator(self, c: code.Operator):
         return IWrap(c)
 
 
