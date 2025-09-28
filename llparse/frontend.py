@@ -196,6 +196,7 @@ class Frontend:
                 _frontend.node.Sequence,
                 _frontend.node.Single,
                 _frontend.node.TableLookup,
+                _frontend.node.SpanStart
             ),
         ):
             self.resumptionTargets.add(node)
