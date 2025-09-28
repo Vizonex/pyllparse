@@ -190,6 +190,7 @@ class Frontend:
         if isinstance(
             node.ref,
             (
+                _frontend.node.Int,
                 _frontend.node.Consume,
                 _frontend.node.Empty,
                 _frontend.node.Sequence,
