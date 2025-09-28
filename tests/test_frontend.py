@@ -136,6 +136,19 @@ def test_pausing():
     s2.match("p", p.pause(2, "parser was asked to pause again").otherwise(s)).skipTo(s2)
     p.build(s)
 
+def test_intnodes():
+    # IntNodes should be registered to llparse_state_t and should be a resumption target
+    # Otherwise we crash during dynamic streams of data this is a bug in 0.1.6 that is fixed in 0.1.7
+    p = LLParse("lltest")
+    p.property('i16', 'value')
+    start = p.node("start")
+    value = p.intBE('value', bits=2).skipTo(start)
+    start.skipTo(value)
+    
+    artifacts = p.build(start)
+    code = artifacts.c.splitlines()
+    assert "    case s_n_lltest__n_value_int_16be_byte2:" in code, "Int Node should be a resumption target"
+
 
 def test_operators(op: str):
     test = LLParse("test")
