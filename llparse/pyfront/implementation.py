@@ -1,7 +1,7 @@
-from ..pyfront import front as code
+from . import code as code
 from ..pyfront import nodes as node
 from ..pyfront import transform
-from ..pyfront.front import IWrap
+from .code import IWrap
 
 
 class INodeImplementation:
@@ -37,7 +37,7 @@ class INodeImplementation:
 
     def TableLookup(self, n: node.TableLookup):
         return IWrap(n)
-    
+
     def Int(self, n: node.Int):
         return IWrap(n)
 
@@ -93,7 +93,7 @@ class ICodeImplementation:
 
     def Value(self, c: code.Value):
         return IWrap(c)
-    
+
     def Operator(self, c: code.Operator):
         return IWrap(c)
 

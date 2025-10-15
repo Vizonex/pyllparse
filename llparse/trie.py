@@ -74,11 +74,10 @@ class Trie:
         first = edges[0].key
         last = edges[-1].key
         # print("level", edges, first)
-        if len(edges) == 1 and (len(edges[0].key) == 0):
+        if len(edges) == 1 and (not len(edges[0].key)):
             return TrieEmpty(edges[0].node, edges[0].value)
 
         i = 0
-        # print(first)
         for i in range(len(first)):
             if first[i] != last[i]:
                 break
@@ -91,20 +90,22 @@ class Trie:
 
         return self.single(edges, path)
 
-    def Slice(self, edges: list[IEdge], off: int):
+    def slice(self, edges: list[IEdge], off: int):
         _slice = [
             IEdge(edge.key[off:], edge.node, edge.noAdvance, edge.value)
             for edge in edges
         ]
         return sorted(_slice, key=lambda k: k.key)
 
-    def sequence(self, edges: list[IEdge], prefix: bytes, path: list[bytes]):
-        sliced = self.Slice(edges, len(prefix))
+    def sequence(
+        self, edges: list[IEdge], prefix: bytes, path: list[bytes]
+    ) -> TrieSequence:
+        sliced = self.slice(edges, len(prefix))
         assert not any([edge.noAdvance for edge in edges])
         child = self.level(sliced, path + [prefix])
         return TrieSequence(prefix, child)
 
-    def single(self, edges: list[IEdge], path: list[bytes]):
+    def single(self, edges: list[IEdge], path: list[bytes]) -> TrieSingle:
         if not len(edges[0].key):
             assert not path, f'Empty root entry at "{self.name}"'
             assert not (len(edges) == 1 or len(edges[1].key) != 0), (
@@ -112,7 +113,7 @@ class Trie:
                 + (b", ".join(path).decode("utf-8"))
                 + "]"
             )
-        
+
         keys: dict[int, list[IEdge]] = {}
         otherwise = None
         for edge in edges:
@@ -132,7 +133,7 @@ class Trie:
         for key, subEdges in keys.items():
             # TODO LOG FUNCTION's ARGUMENTS TO DETERMINE WEATHER OR NOT IT'S the Problem...
             # I think this maybe the problem now that I think about it...
-            sliced = self.Slice(subEdges, 1)
+            sliced = self.slice(subEdges, 1)
 
             subPath = path + [chr(key).encode("utf-8")]
 
@@ -146,7 +147,7 @@ class Trie:
                     + "]"
                 )
                 raise TypeError(err)
-    
+
             children.append(
                 ITrieSingleChild(key, noAdvance, self.level(sliced, subPath))
             )

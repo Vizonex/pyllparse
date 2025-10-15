@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Literal, Optional, Union, TypeVar
+from typing import Literal, Optional, TypeVar, Union
 
 from .enumerator import Enumerator
 from .pybuilder import LoopChecker
@@ -7,12 +7,12 @@ from .pybuilder import builder as source
 
 # from pyfront.namespace import code, node , transform
 from .pyfront import namespace as _frontend
-from .pyfront.front import Identifier, IWrap, SpanField
+from .pyfront.code import Identifier, IWrap, SpanField
 from .pyfront.implementation import IImplementation
 from .pyfront.nodes import ITableEdge
 from .pyfront.peephole import Peephole
 from .spanalloc import SpanAllocator
-from .trie import Trie, TrieEmpty, TrieNode, TrieSequence, TrieSingle, ITrieSingleChild
+from .trie import ITrieSingleChild, Trie, TrieEmpty, TrieNode, TrieSequence, TrieSingle
 
 DEFAULT_MIN_TABLE_SIZE = 32
 DEFAULT_MAX_TABLE_WIDTH = 4
@@ -22,8 +22,8 @@ from logging import getLogger
 log = getLogger("llparse.frontend")
 
 
-CodeT = TypeVar('CodeT', bound=source.code.Code)
-NodeT = TypeVar('NodeT', bound=source.node.Node)
+CodeT = TypeVar("CodeT", bound=source.code.Code)
+NodeT = TypeVar("NodeT", bound=source.node.Node)
 
 WrappedNode = IWrap[_frontend.node.Node]
 WrappedCode = IWrap[_frontend.code.Code]
@@ -196,7 +196,7 @@ class Frontend:
                 _frontend.node.Sequence,
                 _frontend.node.Single,
                 _frontend.node.TableLookup,
-                _frontend.node.SpanStart
+                _frontend.node.SpanStart,
             ),
         ):
             self.resumptionTargets.add(node)
@@ -263,8 +263,8 @@ class Frontend:
 
             assert isinstance(node, (source.code.Match, source.node.Int))
             _match = node
-        
-            assert otherwise, (f'Node "{node.name}" has no ".otherwise()"')
+
+            assert otherwise, f'Node "{node.name}" has no ".otherwise()"'
 
             if isinstance(node, source.node.Match):
                 for child in result:
@@ -277,9 +277,10 @@ class Frontend:
                     # TODO Vizonex : This might break , be sure to make a workaround function here...
                     child.ref.setTransform(transform)
 
-            
             else:
-                result[-1].ref.setOtherwise(self.translate(otherwise.node), otherwise.noAdvance)
+                result[-1].ref.setOtherwise(
+                    self.translate(otherwise.node), otherwise.noAdvance
+                )
             assert len(result) >= 1
             return result[0]
 
@@ -310,23 +311,36 @@ class Frontend:
                 assert len(list(node)) == 0
 
             return single
-        
+
     def translateInt(self, node: source.node.Int) -> list[IWrap[_frontend.node.Int]]:
-        inner = _frontend.node.Int(self.Id.id(node.name), node.field, node.bits, node.signed, node.little_endian, 0)
+        inner = _frontend.node.Int(
+            self.Id.id(node.name),
+            node.field,
+            node.bits,
+            node.signed,
+            node.little_endian,
+            0,
+        )
         result = [self.implementation.node.Int(inner)]
         # front is to avoid overlapping with python's functions (aka next)
         front = self.Map[node] = result[0]
-        
+
         for offset in range(1, node.bits):
             unique_name = self.Id.id(f"{node.name}_byte{offset + 1}")
-            inner = _frontend.node.Int(unique_name, node.field, node.bits, node.signed, node.little_endian, offset)
+            inner = _frontend.node.Int(
+                unique_name,
+                node.field,
+                node.bits,
+                node.signed,
+                node.little_endian,
+                offset,
+            )
             outer = self.implementation.node.Int(inner)
             result.append(outer)
             # Integers will advance since they are unpacking values...
             front.ref.setOtherwise(outer, False)
             front = result[-1]
         return result
-
 
     def maybeTableLookup(
         self, node: source.code.Match, trie: TrieSingle, children: MatchChildren
@@ -466,9 +480,7 @@ class Frontend:
     def translateSpanCode(self, code: source.code._Span):
         return self.translateCode(code)
 
-    def translateCode(
-        self, code: CodeT
-    ):
+    def translateCode(self, code: CodeT):
         """Translates Builder Classes to Frontend Classes..."""
 
         prefixed = self.codeId.id(code.name).name
@@ -479,13 +491,13 @@ class Frontend:
             res = codeImpl.IsEqual(
                 _frontend.code.IsEqual(prefixed, code.field, code.value)
             )
-        # custom thing I added in 0.1.6 I encourage the typescript 
+        # custom thing I added in 0.1.6 I encourage the typescript
         # maintainers and developers of llparse to look into this :)
         elif isinstance(code, source.code.Operator):
-            res = codeImpl.Operator(_frontend.code.Operator(
-                prefixed, code.field, code.value, code.op
-            ))
-        
+            res = codeImpl.Operator(
+                _frontend.code.Operator(prefixed, code.field, code.value, code.op)
+            )
+
         elif isinstance(code, source.code.Load):
             res = codeImpl.Load(_frontend.code.Load(prefixed, code.field))
 

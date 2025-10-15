@@ -196,7 +196,6 @@ class Node:
             return res
         else:
             # Concate DO NOT ADD TO RES!!!!
-
             return res + [self.otherwiseEdge]
 
     def __iter__(self):
@@ -601,20 +600,3 @@ class Reachability:
                 queue.append(otherwise.node)
 
         return list(res)
-
-
-# On_User_Key = Match("On_User_Key")
-
-# On_User_Value = Match("On_User_Value")
-
-# data_extraction = Node("On_Data_Extraction").skipTo(On_User_Key)
-
-# node = Match("On_Level_Comment").skipTo(data_extraction)
-
-
-# On_User_Key.match(["0","1","2","3","4","5","6","7","8","9"],On_User_Key)\
-#     .peek("~",On_User_Value)\
-#     .otherwise(Error(1,"[BAD KEY] Some retard decided to hijack your server! Oh SHIT!"))
-
-
-# print([d.node.name for d in node.getAllEdges()])
