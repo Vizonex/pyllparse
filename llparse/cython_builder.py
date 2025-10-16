@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from typing import Optional
 
 from .frontend import IFrontendResult
-from .pyfront.front import Match
+from .pyfront.code import Match
 from .pyfront.nodes import Invoke
 
 # Inspired by Cython's Writer

@@ -1,10 +1,11 @@
-from .pyfront.front import IWrap
+from .pyfront.code import IWrap
 from .pyfront.nodes import Node
 
 
 class Enumerator:
+    # TODO: Remove from staticmethod and make one seperate function
     @staticmethod
-    def getAllNodes(root: IWrap[Node]):
+    def getAllNodes(root: IWrap[Node]) -> list[IWrap[Node]]:
         nodes: set[IWrap[Node]] = set()
         queue: list[IWrap[Node]] = [root]
 

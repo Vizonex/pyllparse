@@ -273,12 +273,13 @@ class Update(Field):
         out.append(f"{self.field(ctx)} = {self.ref.value};")
         out.append("return 0;")
 
+
 class Operator(Field):
     def __init__(self, ref: _frontend.code.Operator):
         self.ref = ref
-    
+
     def doBuild(self, ctx: "Compilation", out: list[str]):
-        out.append(f'return {self.field(ctx)} {self.ref.op} {self.ref.value};')
+        out.append(f"return {self.field(ctx)} {self.ref.op} {self.ref.value};")
 
 
 @dataclass
@@ -508,7 +509,9 @@ class Pause(Error):
 
         assert self.ref.otherwise
         otherwise = ctx.unwrapNode(self.ref.otherwise.node)
-        out.append(f"{ctx.currentField()} = (void*) (intptr_t) {otherwise.cachedDecel or ('s_n_' + otherwise.ref.id.name)};")
+        out.append(
+            f"{ctx.currentField()} = (void*) (intptr_t) {otherwise.cachedDecel or ('s_n_' + otherwise.ref.id.name)};"
+        )
         out.append(f"return {STATE_ERROR};")
 
 
@@ -519,7 +522,7 @@ class Sequence(Node):
 
     def doBuild(self, out: list[str]):
         ctx = self.compilation
-        # TODO: llparse_match_t could be easily changed around to 
+        # TODO: llparse_match_t could be easily changed around to
         # Something that can't be overlapped with when compiled with other parsers...
         out.append("llparse_match_t match_seq;")
         out.append("")
@@ -691,11 +694,13 @@ class SpanEnd(Node):
 # 0x800000 I24
 # 0x1000000 U24
 
+
 class Int(Node):
     def __init__(self, ref: _frontend.node.Int):
         super().__init__(ref)
         self.ref = ref
         self.offset = ref.byteOffset
+
     # I'm going to deviate from arthurschreiber's work a bit with indutny's suggestions.
     # we should really be using bitwise operators like rshift and lshift
     @property
@@ -705,11 +710,11 @@ class Int(Node):
     def readInt8(self, out: list[str]) -> None:
         ctx, index = self.pair
         out.append(f"{index} = ((*{ctx.posArg()}) & 0x80);")
-    
+
     def readUInt8(self, out: list[str]) -> None:
         ctx, index = self.pair
         out.append(f"{index} = (*{ctx.posArg()});")
-    
+
     # LITTLE ENDIAN
 
     def readInt16LE(self, out: list[str]) -> None:
@@ -717,7 +722,7 @@ class Int(Node):
         if self.offset == 0:
             out.append(f"{index} = (*{ctx.posArg()});")
         else:
-            # Since BE Belongs to performing << aka left shifts we do >> right shifts 
+            # Since BE Belongs to performing << aka left shifts we do >> right shifts
             out.append(f"{index} = ({index} >> 8) | ((*{ctx.posArg()}) & 0x80);")
 
     def readUInt16LE(self, out: list[str]) -> None:
@@ -742,7 +747,7 @@ class Int(Node):
             out.append(f"{index} = (*{ctx.posArg()});")
         else:
             out.append(f"{index} = ({index} >> 8) | (*{ctx.posArg()});")
- 
+
     def readInt32LE(self, out: list[str]) -> None:
         ctx, index = self.pair
         if self.offset == 0:
@@ -758,17 +763,17 @@ class Int(Node):
             out.append(f"{index} = (*{ctx.posArg()});")
         else:
             out.append(f"{index} = ({index} >> 8) | (*{ctx.posArg()});")
-    
-    # BIG ENDIAN 
-    
+
+    # BIG ENDIAN
+
     def readInt16BE(self, out: list[str]) -> None:
         ctx, index = self.pair
         if self.offset == 0:
             out.append(f"{index} = (*{ctx.posArg()});")
         else:
-            # Since LE Belongs to >> we do "<<" instead 
+            # Since LE Belongs to >> we do "<<" instead
             out.append(f"{index} = ({index} << 8) | ((*{ctx.posArg()}) & 0x80);")
-    
+
     def readUInt16BE(self, out: list[str]) -> None:
         ctx, index = self.pair
         if self.offset == 0:
@@ -791,7 +796,7 @@ class Int(Node):
             out.append(f"{index} = (*{ctx.posArg()});")
         else:
             out.append(f"{index} = ({index} << 8) | (*{ctx.posArg()});")
- 
+
     def readInt32BE(self, out: list[str]) -> None:
         ctx, index = self.pair
         if self.offset == 0:
@@ -807,15 +812,16 @@ class Int(Node):
             out.append(f"{index} = (*{ctx.posArg()});")
         else:
             out.append(f"{index} = ({index} << 8) | (*{ctx.posArg()});")
- 
-        
-    def doBuild(self, out:list[str]):
+
+    def doBuild(self, out: list[str]):
         self.prologue(out)
         # I'm still supporting 3.9 but I plan to drop it's support in favor of match case soon...
         bits = self.ref.bits
-        
-        if self.compilation.getFieldType(self.ref.field) == 'ptr':
-            raise ValueError(f'property {self.ref.field} should not use pointers but it was given \"ptr\"')
+
+        if self.compilation.getFieldType(self.ref.field) == "ptr":
+            raise ValueError(
+                f'property {self.ref.field} should not use pointers but it was given "ptr"'
+            )
 
         if bits == 1:
             self.readInt8(out) if self.ref.signed else self.readUInt8(out)
@@ -835,10 +841,8 @@ class Int(Node):
             else:
                 self.readInt32BE(out) if self.ref.signed else self.readUInt32BE(out)
         # TODO: uint64 & int64
-        
+
         self.tailTo(out, self.ref.otherwise.node, self.ref.otherwise.noAdvance, None)
-
-
 
 
 MAX_CHAR = 0xFF
@@ -1193,12 +1197,11 @@ class Compilation:
             raise LookupError(f'Field "{field}" not found')
 
     # Helpers are different since in python we have duck typing - Vizonex
-    def unwrapCode(
-        self, code: IWrap[_frontend.code.Code], allow_continue: bool = False
-    ):
-        if self.CodeContainer.get(code):
+    def unwrapCode(self, code: IWrap[_frontend.code.Code]):
+        if __code := self.CodeContainer.get(code):
             # Give some indication that the element has already been built...
-            return self.CodeContainer[code]
+            # return self.CodeContainer[code]
+            return __code
 
         ref = code.ref
 
@@ -1251,7 +1254,7 @@ class Compilation:
             r = Error(ref)
         elif isinstance(ref, _frontend.node.Invoke):
             r = Invoke(ref)
-        
+
         elif isinstance(ref, _frontend.node.SpanStart):
             r = SpanStart(ref)
 

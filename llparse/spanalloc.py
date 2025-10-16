@@ -1,4 +1,3 @@
-from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Union
 
@@ -8,7 +7,7 @@ from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
 SpanSet = set[Span]
 
 
-def _id(node: Union[SpanStart, SpanEnd]):
+def _id(node: Union[SpanStart, SpanEnd]) -> Span: 
     return node.span
 
 
@@ -29,6 +28,12 @@ class ISpanAllocatorResult:
 
 
 class SpanAllocator:
+    __slots__ = (
+        "_mx",
+        "_colors",
+        "_overlapMap"
+    )
+
     def __init__(self) -> None:
         return
 
@@ -70,8 +75,8 @@ class SpanAllocator:
                     if span not in spans:
                         raise Error(f'unmatched span end for "{span.callback.name}"')
 
-    def computeActive(self, nodes: list[Node]):
-        activeMap: dict[Node, SpanSet] = dict()
+    def computeActive(self, nodes: list[Node]) -> ISpanActiveInfo:
+        activeMap: dict[Node, SpanSet] = {}
         for node in nodes:
             activeMap[node] = set()
 
@@ -110,18 +115,18 @@ class SpanAllocator:
 
         return ISpanActiveInfo(active=activeMap, spans=list(spans))
 
-    def computeOverlap(self, info: ISpanActiveInfo):
+    def computeOverlap(self, info: ISpanActiveInfo) -> dict[Span, set[Span]]:
         active = info.active
 
         overlap: dict[Span, set[Span]] = {span: set() for span in info.spans}
-        for _, spans in active.items():
+        for spans in active.values():
             for one in spans:
                 for other in spans:
                     if other != one:
                         overlap[one].add(other)
         return overlap
 
-    def _allocate(self, span: Span):
+    def _allocate(self, span: Span) -> int:
         if span in self._colors:
             return self._colors[span]
 
@@ -139,7 +144,7 @@ class SpanAllocator:
         self._colors[span] = i
         return i
 
-    def color(self, spans: list[Span], overlapDict: SpanOverlap):
+    def color(self, spans: list[Span], overlapDict: SpanOverlap) -> ISpanAllocatorResult:
         # Used _max instead of max because max() is an api called function needed in a bit...
         self._mx = -1
         self._colors: dict[Span, int] = {}
@@ -148,10 +153,10 @@ class SpanAllocator:
 
         colors = {span: self._allocate(span) for span in spans}
 
-        concurrency = list()
-        for _ in range(self._mx + 1):
-            # NOTE : concurrency[i] = [] doesn't work but this does :P
-            concurrency.append([])
+        concurrency:list[list[Span]] = [[] for _ in range(self._mx + 1)]
+        # for _ in range(self._mx + 1):
+        #     # NOTE : concurrency[i] = [] doesn't work but this does :P
+        #     concurrency.append([])
 
         for s in sorted(spans, key=lambda s: s.callback.name):
             concurrency[self._allocate(s)].append(s)

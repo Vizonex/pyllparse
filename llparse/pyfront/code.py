@@ -89,7 +89,11 @@ class IsEqual(FieldValue):
 class Operator(FieldValue):
     def __init__(self, name: str, field: str, value: int, op: str):
         super().__init__(
-            "match", f"is_{field}_{name}_{toCacheKey(value)}", f'{name}_{toCacheKey(value)}', field, value
+            "match",
+            f"is_{field}_{name}_{toCacheKey(value)}",
+            f"{name}_{toCacheKey(value)}",
+            field,
+            value,
         )
         self.op = op
 

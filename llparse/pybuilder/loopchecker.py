@@ -118,15 +118,14 @@ class Reachability:
     def build(self, root: Node) -> list[Node]:
         res: set[Node] = set()
         queue = [root]
-        while len(queue) != 0:
+        while queue:
             node = queue.pop()
             if node in res:
                 continue
             res.add(node)
             for edge in node:
                 queue.append(edge.node)
-            otherwise = node.getOtherwiseEdge()
-            if otherwise:
+            if otherwise := node.getOtherwiseEdge():
                 queue.append(otherwise.node)
 
         # Reverse the order so that we always

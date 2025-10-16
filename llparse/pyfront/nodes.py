@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
-from typing import Any, Optional, Callable
+from typing import Callable, Optional
 
-from ..pyfront.front import Code, IWrap, Span, SpanField
+from .code import Code, IWrap, Span, SpanField
 from ..pyfront.transform import Transform
 
 
@@ -37,9 +37,6 @@ class Slot:
 class IUniqueName:
     name: str
     originalName: str
-
-    # def __hash__(self):
-    #     return hash(self.name)
 
 
 @dataclass
@@ -153,11 +150,12 @@ class Pause(Error):
         super().__init__(id, code, reason)
 
 
-# Not in llparse node-js (yet) But I wanted to implement 
-# this into my version since I am making a very important 
+# Not in llparse node-js (yet) But I wanted to implement
+# this into my version since I am making a very important
 # http2 frame parser
 
 # SEE: https://github.com/nodejs/llparse-frontend/pull/1
+
 
 @dataclass
 class Int(Node):
@@ -169,8 +167,6 @@ class Int(Node):
 
     def __hash__(self):
         return hash(self.id)
-
-
 
 
 @dataclass
@@ -264,4 +260,3 @@ class TableLookup(Match):
         for e in self.privEdges:
             yield Slot(e.node, lambda value: setattr(e, "node", value))
         yield from super().buildSlots()
-
