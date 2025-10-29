@@ -5,7 +5,8 @@
 
 A python parody of the typescript library llparse.
 
-I take no credit for the orginal work done by indutny and the other node-js contributors involved.
+I take no credit for the orginal work done by indutny and the other node-js contributors involved and my additional 
+features were meant to inspire activity with the original library again.
 
 Links to the original library 
 - https://llparse.org
