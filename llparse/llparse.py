@@ -12,7 +12,7 @@ from .frontend import (
     source,
 )
 from .header import HeaderBuilder
-
+from .capi_builder import CAPIResult, LibraryCompiler
 
 @dataclass
 class CompilerResult:
@@ -97,11 +97,12 @@ class LLParse(source.Builder):
     int PREFIX_init(PREFIX_t* state);
     int PREFIX_execute(PREFIX_t* state, const char p, const char endp);
     ```
-
-    `prefix`  Prefix to be used when generating public API.
     """
 
-    def __init__(self, prefix: str) -> None:
+    def __init__(self, prefix: str = "llparse") -> None:
+        """
+        :param prefix: Prefix to be used when generating public API default is "llparse".
+        """
         self.prefix = prefix
         super().__init__()
 
@@ -165,3 +166,8 @@ class LLParse(source.Builder):
             maxTableElemWidth if maxTableElemWidth else DEFAULT_MAX_TABLE_WIDTH,
             minTableSize if minTableSize else DEFAULT_MIN_TABLE_SIZE,
         ).to_frontend(root, self.properties)
+
+    def capi(self, prefix:str):
+        """Using a new prefix this tool enables helping build c-api wrapper that is simillar to llhttp"""
+        return LibraryCompiler(prefix, self)
+    

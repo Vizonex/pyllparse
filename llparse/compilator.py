@@ -648,7 +648,7 @@ class SpanEnd(Node):
         out.append(f"{posField} = NULL;")
 
         # Invoke callback
-        callback = ctx.buildCode(ctx.unwrapCode(self.ref.callback, True))
+        callback = ctx.buildCode(ctx.unwrapCode(self.ref.callback))
 
         out.append(f"err = {callback}({ctx.stateArg()}, start, {ctx.posArg()});")
 

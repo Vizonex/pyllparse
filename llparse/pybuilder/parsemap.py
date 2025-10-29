@@ -31,3 +31,25 @@ class ParserMap:
         data = edge.__dict__
         data["node"] = edge.node
         return data
+
+
+def traverse(root: Node):
+    """Built for traversing through all implemented llparse nodes"""
+
+    queue = [root]
+    seen: set[Node] = set()
+    while queue:
+        node = queue.pop()
+        if node in seen:
+            continue
+
+        seen.add(node)
+
+        for edge in node:
+            queue.append(edge.node)
+        
+        if otherwise := node.getOtherwiseEdge():
+            queue.append(otherwise.node)
+    yield from seen
+        
+
