@@ -620,7 +620,7 @@ class SpanStart(Node):
 
         if len(field.callbacks) > 1:
             cbField = ctx.spanCbField(field.index)
-            callback = ctx.unwrapCode(self.ref.callback, True)
+            callback = ctx.unwrapCode(self.ref.callback)
             out.append(f"{cbField} = {ctx.buildCode(callback)};")
 
         otherwise = self.ref.otherwise
@@ -648,7 +648,7 @@ class SpanEnd(Node):
         out.append(f"{posField} = NULL;")
 
         # Invoke callback
-        callback = ctx.buildCode(ctx.unwrapCode(self.ref.callback, True))
+        callback = ctx.buildCode(ctx.unwrapCode(self.ref.callback))
 
         out.append(f"err = {callback}({ctx.stateArg()}, start, {ctx.posArg()});")
 
