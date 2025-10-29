@@ -462,14 +462,13 @@ class LibraryCompiler:
         """Compile library's data and create a header file and other external for the library's c-api"""
         results = self.filter(root)
         used = results.use
-        print(used)
         api_code = API_C_CODE.substitute(
             prefix=self._prefix,
             values=used.values,
             matches=used.matches,
             spans=used.spans,
             upper=self._prefix.upper(),
-            header=header or self._prefix,
+            header=header or (self._prefix + ".h"),
         )
         header_code = API_C_HEADER.substitute(
             prefix=self._prefix,
