@@ -1121,8 +1121,7 @@ class Compilation:
     def reserveSpans(self, spans: list[_frontend.node.SpanField]):
         for span in spans:
             for callback in span.callbacks:
-                cb = self.unwrapCode(callback)
-                if cb:
+                if cb := self.unwrapCode(callback):
                     self.buildCode(cb)
 
     def debug(self, out: list[str], message: str):
