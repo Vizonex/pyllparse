@@ -1,0 +1,9 @@
+# Borrowed until I figure out what this does. 
+chronographer:
+  exclude:
+    bots:
+    - dependabot-preview
+    - dependabot
+    - patchback
+    humans:
+    - pyup-bot
