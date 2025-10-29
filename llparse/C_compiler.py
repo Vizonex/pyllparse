@@ -176,7 +176,7 @@ class CCompiler:
             posField = ctx.spanPosField(span.index)
 
             if len(span.callbacks) == 1:
-                cb = ctx.unwrapCode(span.callbacks[0], True)
+                cb = ctx.unwrapCode(span.callbacks[0])
                 callback = ctx.buildCode(cb)
 
             else:
