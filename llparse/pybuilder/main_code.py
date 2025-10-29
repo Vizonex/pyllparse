@@ -42,8 +42,12 @@ def validate_text(init: Callable[_P, _T]) -> Callable[_P, _T]:
 
 
 class Code:
-    def __init__(self, signature: Literal["match", "value"], name: str) -> None:
+    def __init__(self, signature: Literal["match", "value"], name: str, independent: bool = False) -> None:
         assert signature in Signature, "Invalid signature %s" % signature
+        
+        # Added in 0.2.1 this label marks that a function is user-made
+        # examples of this would be Value and _Match nodes
+        self.is_independent = independent
 
         self.signature = signature
         self.name = name
@@ -107,7 +111,7 @@ class _Match(Code):
     """Refers to the Code's Match Not the Node's Match"""
 
     def __init__(self, name: str) -> None:
-        super().__init__("match", name)
+        super().__init__("match", name, independent=True)
 
 
 @dataclass
@@ -151,7 +155,7 @@ class Update(FieldValue):
 
 class Value(Code):
     def __init__(self, name: str) -> None:
-        super().__init__("value", name)
+        super().__init__("value", name, is_independent=True)
 
 
 # Nodes...
@@ -513,8 +517,10 @@ class Match(Node):
         value = int(valueOrNext)
         key = toBuffer(keyOrDict)
         edge = Edge(next, False, key, value)
-        if self.name == "nmethods":
-            print(f"{self.name}: {key} -> {edge.node.name}")
+        
+        # TODO: Put this on debug...
+        # if self.name == "nmethods":
+        #     print(f"{self.name}: {key} -> {edge.node.name}")
 
         self.addEdge(edge)
         return self
@@ -534,6 +540,10 @@ class SpanStart(Node):
         self.span = span
         super().__init__(f"span_start_{span.callback.name}")
 
+    @property
+    def real_name(self):
+        """Obtains span's original name"""
+        return self.span.callback.name
 
 class SpanEnd(Node):
     def __init__(self, span: "Span") -> None:
