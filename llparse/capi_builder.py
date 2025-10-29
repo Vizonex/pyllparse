@@ -426,11 +426,8 @@ class LibraryCompiler:
 
     def filter_name(self, name: str):
         for f in self._filters:
-            print(f._pattern, name)
             if f.is_match(name):
-                print("no ignore")
                 return f, name
-        print("dummy ignore")
         return self._dummy_ignore, name
 
     def filter(self, root: builder.Node) -> Results:
@@ -440,16 +437,12 @@ class LibraryCompiler:
         for node in traverse(root):
             # Look for spans and invokes...
             if isinstance(node, builder.SpanStart):
-                print(node)
                 if pair := self.filter_name(node.real_name):
-                    print("obtained")
                     results.add(pair[0], pair[1], ResultType.SPAN)
-                print(results)
             elif isinstance(node, builder.Invoke):
                 # Added special shortcut value to identify Code Matches
                 # and Value Code objects
                 if node.code.is_independent:
-                    print(node)
                     if pair := self.filter_name(node.code.name):
                         results.add(
                             pair[0],
