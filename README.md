@@ -5,15 +5,15 @@
 
 A python parody of the typescript library llparse.
 
-I take no credit for the orginal work done by indutny and the other node-js contributors involved and I was originally very nervous about making 
-this python library that I made public... 
+I take no credit for the orginal work done by indutny and the other node-js contributors involved.
 
 Links to the original library 
 - https://llparse.org
 - https://github.com/nodejs/llparse
 
 Unlike the typescript library all 3 of llparse's libraries were combined in this version of the code for the sake of portability... 
-I ended up mentioning how I did this a while back and I also had a concept for a C parser as well but I just didn't like it and I ended up using this instead but I also learned typescript as a bonus and It was alot of fun for me. I don't plan to make this into a real pypi library yet but I also didn't want to take away from the magic of the original source code that I borrowed from...
+I ended up mentioning how I did this a while back and I also had a concept for a C parser as well but I just didn't like it and I ended up using this instead but I also learned typescript as a bonus and It was alot of fun for me. I don't plan to make this into a real pypi library yet but I also didn't want to take away from the magic of the original source code that I borrowed from.
+
 
 # Looking back on my dead work 2 years later
 I had this idea lay somewhat dormant for 2 years and now seeing that I wanted to write a new socks5 server parser writing it in python
@@ -124,3 +124,9 @@ open("http_parser.h", "w").write(c.header)
 
 ## Video Showcasing this library
 - https://youtu.be/YQOzJ2BghQw
+
+## Examples of this library being in use
+- [llh2](https://github.com/Vizonex/llh2) I would like to move to the typescript version once my ideas and
+  features I've added in get fully implemented but we shall wait and see...
+
+
