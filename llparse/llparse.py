@@ -1,7 +1,6 @@
 """"""
 
 from dataclasses import dataclass
-from typing import Optional
 
 from .C_compiler import CCompiler
 from .frontend import (
@@ -12,7 +11,8 @@ from .frontend import (
     source,
 )
 from .header import HeaderBuilder
-from .capi_builder import CAPIResult, LibraryCompiler
+from .capi_builder import LibraryCompiler
+
 
 @dataclass
 class CompilerResult:
@@ -32,10 +32,10 @@ class Compiler:
     def __init__(
         self,
         prefix: str,
-        headerGuard: Optional[str] = None,
-        debug: Optional[str] = None,
-        maxTableElemWidth: Optional[int] = None,
-        minTableSize: Optional[int] = None,
+        headerGuard: str | None = None,
+        debug: str | None = None,
+        maxTableElemWidth: int | None = None,
+        minTableSize: int | None = None,
     ):
         self.prefix = prefix
         self.headerGuard = headerGuard
@@ -47,7 +47,7 @@ class Compiler:
         self,
         root: source.code.Node,
         properties: list[source.Property],
-        Impl: Optional[IImplementation] = IImplementation(),
+        Impl: IImplementation | None = IImplementation(),
     ):
         """compiles up the frontend and brings you back the frontend's results.
         I added documentation to this function so that you can do creative things
@@ -65,8 +65,8 @@ class Compiler:
         self,
         root: source.code.Node,
         properties: list[source.Property],
-        header_name: Optional[str] = None,
-        Impl: Optional[IImplementation] = IImplementation(),
+        header_name: str | None = None,
+        Impl: IImplementation | None = IImplementation(),
         override_llparse_name: bool = False,
     ):
         """Creates the C and header file..."""
@@ -108,10 +108,10 @@ class LLParse(source.Builder):
 
     def get_compiler(
         self,
-        headerGuard: Optional[str] = None,
-        debug: Optional[str] = None,
-        maxTableElemWidth: Optional[int] = None,
-        minTableSize: Optional[int] = None,
+        headerGuard: str | None = None,
+        debug: str | None = None,
+        maxTableElemWidth: int | None = None,
+        minTableSize: int | None = None,
     ) -> Compiler:
         return Compiler(
             self.prefix,
@@ -124,11 +124,11 @@ class LLParse(source.Builder):
     def build(
         self,
         root: source.code.Node,
-        headerGuard: Optional[str] = None,
-        debug: Optional[str] = None,
-        maxTableElemWidth: Optional[int] = None,
-        minTableSize: Optional[int] = None,
-        header_name: Optional[str] = None,
+        headerGuard: str | None = None,
+        debug: str | None = None,
+        maxTableElemWidth: int | None = None,
+        minTableSize: int | None = None,
+        header_name: str | None = None,
         override_llparse_name: bool = False,
     ) -> CompilerResult:
         """Builds Graph and then compiles the data into C code , returns with the header and C file inside of a Dataclass"""
@@ -151,10 +151,10 @@ class LLParse(source.Builder):
     def to_frontend(
         self,
         root: source.code.Node,
-        headerGuard: Optional[str] = None,
-        debug: Optional[str] = None,
-        maxTableElemWidth: Optional[int] = None,
-        minTableSize: Optional[int] = None,
+        headerGuard: str | None = None,
+        debug: str | None = None,
+        maxTableElemWidth: int | None = None,
+        minTableSize: int | None = None,
     ) -> Compiler:
         """Used as an external hack to get access to the frontend of llparse and extract
         it's contents to compile the libraries you make other things like cython, This is not in llparse
@@ -167,7 +167,6 @@ class LLParse(source.Builder):
             minTableSize if minTableSize else DEFAULT_MIN_TABLE_SIZE,
         ).to_frontend(root, self.properties)
 
-    def capi(self, prefix:str):
+    def capi(self, prefix: str):
         """Using a new prefix this tool enables helping build c-api wrapper that is simillar to llhttp"""
         return LibraryCompiler(prefix, self)
-    

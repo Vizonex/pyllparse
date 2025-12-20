@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Optional, Union
 
 from .pybuilder.main_code import Edge, Node
 
@@ -18,7 +17,7 @@ class Dot:
         self.idCache: dict[Node, str] = {}
         self.ns: set[str] = set()
 
-    def dump_to_file(self, filename: Union[str, Path], root: Node):
+    def dump_to_file(self, filename: str | Path, root: Node):
         open(filename, "w").write(self.build(root))
 
     def build(self, root: Node):
@@ -96,10 +95,10 @@ class Dot:
             # print(target.name,otherwise,code,single,sequence)
 
             # end:int node:Node start:int
-            ranges: list[dict[str, Union[int, Node]]] = []
+            ranges: list[dict[str, int | Node]] = []
 
-            firstKey: Optional[int] = None
-            lastKey: Optional[int] = None
+            firstKey: int | None = None
+            lastKey: int | None = None
 
             for edge in single:
                 key = (
@@ -147,7 +146,7 @@ class Dot:
 
         return res
 
-    def buildRangeLabel(self, node: Node, _range: dict[str, Union[int, Node]]):
+    def buildRangeLabel(self, node: Node, _range: dict[str, int | Node]):
         start = self.buildChar(_range["start"])
         end = self.buildChar(_range["end"])
         # return range.start === range.end ? start : `${start}:${end}`;

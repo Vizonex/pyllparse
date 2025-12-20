@@ -3,7 +3,7 @@
 # are renamed to something else.... - Vizonex
 
 from dataclasses import dataclass, field
-from typing import Generic, Optional, TypeVar, Union
+from typing import Generic, TypeVar
 
 T = TypeVar("T")
 
@@ -15,9 +15,9 @@ class IWrap(Generic[T]):
     ref: T
 
 
-def toCacheKey(value: Union[int, bool]) -> str:
+def toCacheKey(value: int | bool) -> str:
     if isinstance(value, int):
-        return "m" + (-value) if value < 0 else "%i" % value
+        return "m" + (-value) if value < 0 else f"{value}"
     elif isinstance(value, bool):
         return "true" if value else "false"
     else:
@@ -113,7 +113,7 @@ class Match(External):
 @dataclass
 class IMulAddOptions:
     base: int
-    max: Optional[int]
+    max: int | None
     signed: bool
 
 
@@ -197,10 +197,10 @@ class Identifier:
         if target in self.ns:
             i = 0
             for i in range(1, len(self.ns)):
-                if (target + "_%i" % i) not in self.ns:
+                if (target + f"_{i}") not in self.ns:
                     break
 
-            target += "_%i" % i
+            target += f"_{i}"
 
         self.ns.add(target)
 

@@ -47,9 +47,7 @@ def traverse(root: Node):
 
         for edge in node:
             queue.append(edge.node)
-        
+
         if otherwise := node.getOtherwiseEdge():
             queue.append(otherwise.node)
     yield from seen
-        
-

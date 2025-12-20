@@ -1,4 +1,4 @@
-from typing import Literal, Optional, Union
+from typing import Literal
 
 from ..pybuilder import main_code as code
 
@@ -129,7 +129,7 @@ class Creator:
         return code.Load(field)
 
     def mulAdd(
-        self, field: str, base: int, max: Optional[int] = None, signed: bool = False
+        self, field: str, base: int, max: int | None = None, signed: bool = False
     ) -> code.MulAdd:
         """Intrinsic operation. Takes `value` from `.select()`, state's property
         with the name `field` and does:
@@ -308,8 +308,8 @@ class Builder:
     def invoke(
         self,
         fn: code.Code,
-        Map: Union[dict[int, code.Node], code.Node, None] = None,
-        otherwise: Optional[code.Node] = None,
+        Map: dict[int, code.Node] | code.Node | None = None,
+        otherwise: code.Node | None = None,
     ):
         if not Map:
             res = code.Invoke(fn, {})

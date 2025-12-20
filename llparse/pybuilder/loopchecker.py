@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Literal, Union
+from typing import Any, Literal
 
 from ..errors import Error
 from ..pybuilder.main_code import Node
@@ -25,7 +25,7 @@ assert MAX_VALUE % WORD_SIZE == 0
 
 class Lattice:
     def __init__(
-        self, value: Union[Any, list[int], bytes, Literal["empty"], Literal["any"]]
+        self, value: Any | list[int] | bytes | Literal["empty"] | Literal["any"]
     ) -> None:
         self.value = value
         self.words: list[int] = []

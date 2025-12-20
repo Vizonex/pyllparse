@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from .code import Code, IWrap, Span, SpanField
 from ..pyfront.transform import Transform
@@ -43,7 +43,7 @@ class IUniqueName:
 class IOtherwiseEdge:
     node: IWrap["Node"]
     noAdvance: bool
-    value: Optional[int]
+    value: int | None
 
 
 @dataclass
@@ -59,9 +59,9 @@ class Identifier:
         if target in self.ns:
             i = 1
             for i in range(1, len(self.ns)):
-                if (target + "_%i" % i) not in self.ns:
+                if (target + f"_{i}") not in self.ns:
                     break
-            target += "_%i" % i
+            target += f"_{i}"
 
         self.ns.add(target)
         return IUniqueName(target, name)
@@ -70,11 +70,11 @@ class Identifier:
 @dataclass
 class Node:
     id: IUniqueName
-    otherwise: Optional[IOtherwiseEdge] = field(default=None, init=False)
-    Slots: Optional[list[Slot]] = field(default_factory=list, init=False)
+    otherwise: IOtherwiseEdge | None = field(default=None, init=False)
+    Slots: list[Slot] | None = field(default_factory=list, init=False)
 
     def setOtherwise(
-        self, node: IWrap["Node"], noAdvance: bool, value: Optional[int] = None
+        self, node: IWrap["Node"], noAdvance: bool, value: int | None = None
     ):
         self.otherwise = IOtherwiseEdge(node, noAdvance, value)
 
@@ -119,9 +119,7 @@ class Invoke(Node):
     def buildSlots(self):
         for edge in self.Edges:
             yield Slot(edge.node, edge.node)
-
-        for e in super().buildSlots():
-            yield e
+        yield from super().buildSlots()
 
 
 class Empty(Node):
@@ -138,7 +136,7 @@ class Error(Node):
 
 class Match(Node):
     def __init__(self, id: IUniqueName) -> None:
-        self.transform: Optional[IWrap[Transform]] = None
+        self.transform: IWrap[Transform] | None = None
         super().__init__(id)
 
     def setTransform(self, transform: IWrap[Transform]):
@@ -172,7 +170,7 @@ class Int(Node):
 @dataclass
 class ISeqEdge:
     node: IWrap[Node]
-    value: Optional[int]
+    value: int | None
 
 
 # TODO Make Sure TypeHinting doesn't overlap with the Real Sequence typehint!
@@ -180,18 +178,17 @@ class ISeqEdge:
 class Sequence(Match):
     def __init__(self, id: IUniqueName, select: str) -> None:
         self.select = select
-        self.Edge: Optional[ISeqEdge] = None
+        self.Edge: ISeqEdge | None = None
         super().__init__(id)
 
-    def setEdge(self, node: Node, value: Optional[int]):
+    def setEdge(self, node: Node, value: int | None):
         assert True if not self.Edge else False
         self.Edge = ISeqEdge(node, value)
 
     def buildSlots(self):
         edge = self.Edge
         yield Slot(edge.node, edge.node)
-        for e in super().buildSlots():
-            yield e
+        yield from super().buildSlots()
 
 
 class SpanStart(Node):
@@ -217,7 +214,7 @@ class ISingleEdge:
     key: int
     node: IWrap[Node]
     noAdvance: bool
-    value: Optional[int] = None
+    value: int | None = None
 
 
 class Single(Match):
@@ -227,7 +224,7 @@ class Single(Match):
         super().__init__(id)
 
     def addEdge(
-        self, key: int, node: IWrap[Node], noAdvance: bool, value: Optional[int] = None
+        self, key: int, node: IWrap[Node], noAdvance: bool, value: int | None = None
     ):
         self.privEdges.append(ISingleEdge(key, node, noAdvance, value))
 

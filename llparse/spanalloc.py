@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-from typing import Union
 
 from .errors import Error
 from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
@@ -7,7 +6,7 @@ from .pybuilder.main_code import Node, Reachability, Span, SpanEnd, SpanStart
 SpanSet = set[Span]
 
 
-def _id(node: Union[SpanStart, SpanEnd]) -> Span: 
+def _id(node: SpanStart | SpanEnd) -> Span:
     return node.span
 
 
@@ -28,11 +27,7 @@ class ISpanAllocatorResult:
 
 
 class SpanAllocator:
-    __slots__ = (
-        "_mx",
-        "_colors",
-        "_overlapMap"
-    )
+    __slots__ = ("_mx", "_colors", "_overlapMap")
 
     def __init__(self) -> None:
         return
@@ -144,7 +139,9 @@ class SpanAllocator:
         self._colors[span] = i
         return i
 
-    def color(self, spans: list[Span], overlapDict: SpanOverlap) -> ISpanAllocatorResult:
+    def color(
+        self, spans: list[Span], overlapDict: SpanOverlap
+    ) -> ISpanAllocatorResult:
         # Used _max instead of max because max() is an api called function needed in a bit...
         self._mx = -1
         self._colors: dict[Span, int] = {}
@@ -153,7 +150,7 @@ class SpanAllocator:
 
         colors = {span: self._allocate(span) for span in spans}
 
-        concurrency:list[list[Span]] = [[] for _ in range(self._mx + 1)]
+        concurrency: list[list[Span]] = [[] for _ in range(self._mx + 1)]
         # for _ in range(self._mx + 1):
         #     # NOTE : concurrency[i] = [] doesn't work but this does :P
         #     concurrency.append([])

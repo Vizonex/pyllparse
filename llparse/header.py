@@ -7,24 +7,25 @@ In C these can help with defining important definiations
 
 """
 
-from typing import Optional
-
 from .frontend import SpanField
 from .pybuilder import Property
+from dataclasses import dataclass, field
 
 
+TYPE_LOOKUP = {
+    "i8": "uint8_t",
+    "i16": "uint16_t",
+    "i32": "uint32_t",
+    "i64": "uint64_t",
+    "ptr": "void*"
+}
+
+@dataclass(slots=True)
 class HeaderBuilder:
-    def __init__(
-        self,
-        prefix: str,
-        headerGuard: Optional[str] = None,
-        Properties: list[Property] = [],
-        spans: list[SpanField] = [],
-    ) -> None:
-        self.Properties = Properties
-        self.prefix = prefix
-        self.headerGuard = headerGuard
-        self.spans = spans
+    prefix: str
+    headerGuard: str | None = field(default=None)
+    properties: list[Property] = field(default_factory=list)
+    spans: list[SpanField] = field(default_factory=list)
 
     def build(self):
         """Builds The string to create the header file"""
@@ -47,9 +48,9 @@ class HeaderBuilder:
         res += f"struct {self.prefix}_s " + "{\n"
         res += "  int32_t _index;\n"
 
-        for index, field in enumerate(self.spans):
+        for index, f in enumerate(self.spans):
             res += f"  void* _span_pos{index};\n"
-            if len(field.callbacks) > 1:
+            if len(f.callbacks) > 1:
                 res += f"  void* _span_cb{index};\n"
 
         res += "  int32_t error;\n"
@@ -58,18 +59,8 @@ class HeaderBuilder:
         res += "  void* data;\n"
         res += "  void* _current;\n"
 
-        for prop in self.Properties:
-            if prop.ty == "i8":
-                ty = "uint8_t"
-            elif prop.ty == "i16":
-                ty = "uint16_t"
-            elif prop.ty == "i32":
-                ty = "uint32_t"
-            elif prop.ty == "i64":
-                ty = "uint64_t"
-            elif prop.ty == "ptr":
-                ty = "void*"
-            else:
+        for prop in self.properties:
+            if not (ty := TYPE_LOOKUP.get(prop.ty)):
                 raise Exception(f'Unknown state property type: "{prop.ty}"')
 
             res += f"  {ty}  {prop.name};\n"

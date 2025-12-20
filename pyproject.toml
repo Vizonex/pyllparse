@@ -1,11 +1,21 @@
 [project]
 name = "llparse"
-version = "0.2.0"
+dynamic = ["version"]
 description = "A Parody of llparse written for writing C Parsers with Python"
 readme = "README.md"
 authors = [
     { name = "Vizonex", email = "VizonexBusiness@gmail.com" }
 ]
-requires-python = ">=3.9"
-dependencies = []
+requires-python = ">=3.10"
+dependencies = [
+    "typing_extensions; python_version < '3.13'"
+]
 
+[tool.setuptools.dynamic]
+version = {attr = "llparse.__version__"}
+
+[build-system]
+requires = ["setuptools"]
+
+[tool.ruff]
+target-version = "py310"
