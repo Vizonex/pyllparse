@@ -6,8 +6,10 @@ readme = "README.md"
 authors = [
     { name = "Vizonex", email = "VizonexBusiness@gmail.com" }
 ]
-requires-python = ">=3.9"
-dependencies = []
+requires-python = ">=3.10"
+dependencies = [
+    "typing_extensions; python_version < '3.13'"
+]
 
 [tool.setuptools.dynamic]
 version = {attr = "llparse.__version__"}
