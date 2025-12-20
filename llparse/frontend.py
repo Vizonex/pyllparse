@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Literal, Optional, TypeVar, Union
+from logging import getLogger
+from typing import Literal, TypeVar
 
 from .enumerator import Enumerator
 from .pybuilder import LoopChecker
@@ -17,7 +20,6 @@ from .trie import ITrieSingleChild, Trie, TrieEmpty, TrieNode, TrieSequence, Tri
 DEFAULT_MIN_TABLE_SIZE = 32
 DEFAULT_MAX_TABLE_WIDTH = 4
 
-from logging import getLogger
 
 log = getLogger("llparse.frontend")
 
@@ -29,7 +31,7 @@ WrappedNode = IWrap[_frontend.node.Node]
 WrappedCode = IWrap[_frontend.code.Code]
 
 
-@dataclass
+@dataclass(slots=True)
 class ITableLookupTarget:
     trie: TrieEmpty
     noAdvance: bool
@@ -71,7 +73,7 @@ class ITableLookupTarget:
 # I will work on a numeric conv Vulnerability Str to int cap Bypass When I upgrade...
 
 
-@dataclass
+@dataclass(slots=True)
 class IFrontendResult:
     prefix: str
     root: IWrap[_frontend.node.Node]
@@ -80,14 +82,14 @@ class IFrontendResult:
     resumptionTargets: set[IWrap[_frontend.node.Node]] = field(default_factory=set)
 
 
-@dataclass
+@dataclass(slots=True)
 class IFrontendOptions:
     maxTableWidth: int
     minTableSize: int
 
 
 MatchChildren = list[WrappedNode]
-MatchResult = Union[WrappedNode, list[WrappedNode]]
+MatchResult = WrappedNode | list[WrappedNode]
 
 
 class Frontend:
@@ -204,7 +206,7 @@ class Frontend:
             self.resumptionTargets.add(node.ref.otherwise.node)
 
     def translate(self, node: source.code.Node):
-        if self.Map.get(node) is not None:
+        if node in self.Map:
             return self.Map[node]
 
         def ID():
@@ -548,20 +550,21 @@ class Frontend:
         return res
 
     def translateTransform(
-        self, transform: Optional[source.code.Transform]
+        self, transform: source.code.Transform | None
     ) -> IWrap[
-        Union[
-            _frontend.transform.Transform,
-            _frontend.transform.ID,
-            _frontend.transform.ToLower,
-            _frontend.transform.ToLowerUnsafe,
-        ]
+        _frontend.transform.Transform
+        | _frontend.transform.ID
+        | _frontend.transform.ToLower
+        | _frontend.transform.ToLowerUnsafe
     ]:
         transformImpl = self.implementation.transform
         if not transform or transform.name == "id":
             return transformImpl.ID(_frontend.transform.ID())
-        elif transform.name == "to_lower":
-            return transformImpl.ToLower(_frontend.transform.ToLower())
-
-        elif transform.name == "to_lower_unsafe":
-            return transformImpl.ToLowerUnsafe(_frontend.transform.ToLowerUnsafe())
+    
+        match transform.name:
+            case "to_lower":
+                return transformImpl.ToLower(_frontend.transform.ToLower())
+            case "to_lower_unsafe":
+                return transformImpl.ToLowerUnsafe(_frontend.transform.ToLowerUnsafe())
+        raise LookupError(f"Unexpected transform name named {transform.name!r}")
+    

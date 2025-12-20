@@ -1,16 +1,12 @@
-from typing import Optional
-
 from .compilator import Compilation, ICompilerOptions, Node
-from .constants import *
+from .constants import ARG_STATE, ARG_POS, ARG_ENDPOS, VAR_MATCH, STATE_ERROR
 from .frontend import IFrontendResult
 
 
 class CCompiler:
     """The Final HeadPeice where the Main C-Code gets compiled to..."""
 
-    def __init__(
-        self, header: Optional[str] = None, debug: Optional[str] = None
-    ) -> None:
+    def __init__(self, header: str | None = None, debug: str | None = None) -> None:
         # NOTE Unlike in typescript llparse Containers are not Required since I'm using a different methoad to translate those parts...
         self.options = ICompilerOptions(debug, header)
 

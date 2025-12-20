@@ -1,14 +1,14 @@
-"""Used to build apis and more from llparse WARNING: 
+"""Used to build apis and more from llparse WARNING:
 This may or may not be stable yet!!!"""
 
 from __future__ import annotations
 
 import re  # inspired by rust's bindgen clang compiler
+import sys
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import (
-    Optional,
     TYPE_CHECKING,
 )  # TODO: retire any 3.9 code in a future update and drop it's support with a cherrypicker file.
 
@@ -18,6 +18,11 @@ from .pybuilder.parsemap import traverse
 
 if TYPE_CHECKING:
     from .llparse import LLParse
+
+if sys.version_info < (3, 13, 3):
+    from typing_extensions import deprecated
+else:
+    from warnings import deprecated
 
 # Inspired by Cython's Writer
 
@@ -178,17 +183,20 @@ struct {{prefix}}_settings_s {
 """
 )
 
-    # {{if matches}}
-    # {{for _, name in matches}}
-    # {{prefix}}_cb      {{name}};
-    # {{endfor}}
-    # {{endif}}
-    # {{if values}}
-    # {{for _, name in values}}
-    # {{prefix}}_value_cb     {{name}};
-    # {{endif}}
+
+# {{if matches}}
+# {{for _, name in matches}}
+# {{prefix}}_cb      {{name}};
+# {{endfor}}
+# {{endif}}
+# {{if values}}
+# {{for _, name in values}}
+# {{prefix}}_value_cb     {{name}};
+# {{endif}}
+
 # Forked from Cython
-class LineWriter(object):
+class LineWriter:
+    __slots__ = ("lines", "s")
     def __init__(self, lines: list[str] = []) -> None:
         self.lines = lines
         self.s = ""
@@ -321,7 +329,7 @@ class ResultType(IntEnum):
     VALUE = 2
 
 
-@dataclass
+@dataclass(slots=True)
 class IgnoredResults:
     spans: list[str] = field(default_factory=list)
     """span callbacks"""
@@ -330,7 +338,7 @@ class IgnoredResults:
     values: list[str] = field(default_factory=list)
     """value callbacks"""
 
-    def add(self, name: str, ty: ResultType):
+    def add(self, name: str, ty: ResultType) -> None:
         if ty == ResultType.SPAN:
             self.spans.append(name)
 
@@ -344,7 +352,7 @@ class IgnoredResults:
             raise TypeError(f"unknown type for name:{name} type:{ty}")
 
 
-@dataclass
+@dataclass(slots=True)
 class UsedResults:
     spans: list[tuple[str, str]] = field(default_factory=list)
     """span callbacks"""
@@ -395,7 +403,7 @@ class LibraryCompiler:
 
     __slots__ = ("_filters", "_dummy_ignore", "_prefix", "_previous_prefix")
 
-    def __init__(self, prefix: str, llparse: "LLParse"):
+    def __init__(self, prefix: str, llparse: LLParse):
         self._filters: set[Filter] = set()
         # Put all ignored spans, matches and values here...
         self._dummy_ignore = Filter("dummy", False)
@@ -453,13 +461,51 @@ class LibraryCompiler:
                         )
         return results
 
+    @deprecated(
+        "Use build(...) instead, compile_capi was too vauge. will be removed in 0.3.0"
+    )
     def compile_capi(
         self,
         root: builder.Node,
         header: str | None = None,
         headerguard: str | None = None,
-    ):
-        """Compile library's data and create a header file and other external for the library's c-api"""
+    ) -> CAPIResult:
+        """
+        Compile library's data and create a header file and other external for the library's c-api
+        Warning: This function's name is deprecated use build(...) instead.
+
+        :param root: the root node to recurse off from
+        :type root: builder.Node
+        :param header: The Name of the Header file
+        :type header: str | None
+        :param headerguard: The Macro's name for the Header guard
+        :type headerguard: str | None
+        :return: The CAPI Result containing extra files for the c-wrapper
+        :rtype: CAPIResult
+
+        """
+        return self.build(root, header, headerguard)
+
+    def build(
+        self,
+        root: builder.Node,
+        header: str | None = None,
+        headerguard: str | None = None,
+    ) -> CAPIResult:
+        """
+        Compile library's data and create a header file and other external for the library's c-api
+
+        :param root: the root node to recurse off from
+        :type root: builder.Node
+        :param header: The Name of the Header file
+        :type header: str | None
+        :param headerguard: The Macro's name for the Header guard
+        :type headerguard: str | None
+        :return: The CAPI Result containing extra files for the c-wrapper
+        :rtype: CAPIResult
+
+        """
+
         results = self.filter(root)
         used = results.use
         api_code = API_C_CODE.substitute(
@@ -481,4 +527,3 @@ class LibraryCompiler:
             prev_prefix=self._previous_prefix,
         )
         return CAPIResult(api_code, header_code)
-

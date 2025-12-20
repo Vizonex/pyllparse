@@ -1,14 +1,15 @@
+from typing import TypeAlias
 from .code import IWrap
 from ..pyfront.nodes import Empty, Node
 
-WrapNode = IWrap[Node]
-WrapList = list[WrapNode]
 
 
-# TODO (Vizonex) Make peephole into 2 seperate functions instead of a class to
-# Optimize everything down further...
+# TODO: these aliases might be deprecated in a future update
+WrapNode: TypeAlias = IWrap[Node]
+WrapList: TypeAlias = list[WrapNode]
+
 class Peephole:
-    def optimize(self, root: WrapNode, nodes: WrapList) -> WrapNode:
+    def optimize(self, root: IWrap[Node], nodes: list[IWrap[Node]]) -> WrapNode:
         changed = set(nodes)
 
         while changed:

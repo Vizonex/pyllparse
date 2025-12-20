@@ -1,6 +1,6 @@
 import sys
 
-__all__ = ['b', 'basestring_', 'bytes', 'next', 'is_unicode']
+__all__ = ["b", "basestring_", "bytes", "next", "is_unicode"]
 
 if sys.version < "3":
     b = bytes = str
@@ -9,8 +9,9 @@ else:
 
     def b(s):
         if isinstance(s, str):
-            return s.encode('latin1')
+            return s.encode("latin1")
         return bytes(s)
+
     basestring_ = (bytes, str)
     bytes = bytes
 text = str
@@ -35,9 +36,9 @@ else:
 def coerce_text(v):
     if not isinstance(v, basestring_):
         if sys.version < "3":
-            attr = '__unicode__'
+            attr = "__unicode__"
         else:
-            attr = '__str__'
+            attr = "__str__"
         if hasattr(v, attr):
             return str(v)
         else:

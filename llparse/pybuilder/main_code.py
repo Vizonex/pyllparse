@@ -1,7 +1,8 @@
 import re
 import sys
 from dataclasses import dataclass
-from typing import Callable, Literal, Optional, TypeVar, Union
+from typing import Literal, TypeVar
+from collections.abc import Callable
 
 if sys.version_info < (3, 10):
     from typing_extensions import ParamSpec
@@ -15,7 +16,7 @@ _T = TypeVar("_T")
 Signature = ["match", "value"]
 
 
-def toBuffer(value: Union[str, int]):
+def toBuffer(value: str | int):
     if isinstance(value, str):
         res = value
     else:
@@ -42,9 +43,11 @@ def validate_text(init: Callable[_P, _T]) -> Callable[_P, _T]:
 
 
 class Code:
-    def __init__(self, signature: Literal["match", "value"], name: str, independent: bool = False) -> None:
+    def __init__(
+        self, signature: Literal["match", "value"], name: str, independent: bool = False
+    ) -> None:
         assert signature in Signature, "Invalid signature %s" % signature
-        
+
         # Added in 0.2.1 this label marks that a function is user-made
         # examples of this would be Value and _Match nodes
         self.is_independent = independent
@@ -164,8 +167,8 @@ class Value(Code):
 class Node:
     def __init__(self, name: str) -> None:
         self.name = name
-        self.otherwiseEdge: Optional["Edge"] = None
-        self.privEdges: list["Edge"] = []
+        self.otherwiseEdge: Edge | None = None
+        self.privEdges: list[Edge] = []
 
     def key(self):
         """reversed for sorting to prevent python from creating artificial randomness"""
@@ -357,8 +360,8 @@ class Edge:
         self,
         node: Node,
         noAdvance: bool,
-        key: Optional[Union[int, str]],
-        value: Optional[int],
+        key: int | str | None,
+        value: int | None,
     ) -> None:
         self.node = node
         self.noAdvance = noAdvance
@@ -410,13 +413,13 @@ class Match(Node):
 
     def __init__(self, name: str) -> None:
         super().__init__(name)
-        self.transformFn: Optional[Transform] = None
+        self.transformFn: Transform | None = None
 
     def transform(self, transformFn: Transform):
         self.transformFn = transformFn
         return self
 
-    def match(self, value: Union[str, int, list[int], list[str]], next: Node):
+    def match(self, value: str | int | list[int] | list[str], next: Node):
         """
         Match sequence/character and forward execution to `next` on success,
 
@@ -444,7 +447,7 @@ class Match(Node):
         self.addEdge(edge)
         return self
 
-    def peek(self, value: Union[str, int, list[Union[str, int]]], next: Node):
+    def peek(self, value: str | int | list[str | int], next: Node):
         """Match character and forward execution to `next` on success
         without consuming one byte of the input.
 
@@ -477,9 +480,9 @@ class Match(Node):
     # It's beacuse it wanted to stay close to the orginal llparse library for better troubleshooting and error diagnosis - Vizonex
     def select(
         self,
-        keyOrDict: Union[int, str, dict[str, int]],
-        valueOrNext: Optional[Union[int, Node]] = None,
-        next: Optional[Node] = None,
+        keyOrDict: int | str | dict[str, int],
+        valueOrNext: int | Node | None = None,
+        next: Node | None = None,
     ):
         """Match character/sequence and forward execution to `next` on success
         consumed matched bytes of the input.
@@ -517,7 +520,7 @@ class Match(Node):
         value = int(valueOrNext)
         key = toBuffer(keyOrDict)
         edge = Edge(next, False, key, value)
-        
+
         # TODO: Put this on debug...
         # if self.name == "nmethods":
         #     print(f"{self.name}: {key} -> {edge.node.name}")
@@ -545,6 +548,7 @@ class SpanStart(Node):
         """Obtains span's original name"""
         return self.span.callback.name
 
+
 class SpanEnd(Node):
     def __init__(self, span: "Span") -> None:
         self.span = span
@@ -564,7 +568,7 @@ class Span:
     # is the ability to fork out and create all sorts of nodes whenever possible, these two
     # functions personally demonstrate just that branching out concept alone - Vizonex
 
-    def start(self, otherwise: Optional[Node] = None):
+    def start(self, otherwise: Node | None = None):
         if otherwise and self.startCache.get(otherwise):
             return self.startCache[otherwise]
 
@@ -576,7 +580,7 @@ class Span:
 
         return res
 
-    def end(self, otherwise: Optional[Node] = None):
+    def end(self, otherwise: Node | None = None):
         if otherwise and self.endCache.get(otherwise):
             return self.endCache[otherwise]
 

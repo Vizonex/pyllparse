@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from functools import total_ordering
-from typing import Optional
 
 from .pybuilder.main_code import Edge, Node
 
@@ -12,7 +11,7 @@ class IEdge:
     key: bytes
     node: Node
     noAdvance: bool
-    value: Optional[int] = None
+    value: int | None = None
 
     def __lt__(self, object: "IEdge"):
         return self.key < object.key
@@ -45,7 +44,7 @@ class TrieEmpty(TrieNode):
 @dataclass
 class TrieSingle(TrieNode):
     children: list[ITrieSingleChild]
-    otherwise: Optional[TrieEmpty] = None
+    otherwise: TrieEmpty | None = None
 
 
 @dataclass

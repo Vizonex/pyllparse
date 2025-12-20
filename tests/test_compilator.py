@@ -3,7 +3,6 @@ from llparse import LLParse
 
 
 def test_http_parser_example():
-
     p = LLParse("http_parser")
     method = p.node("method")
     beforeUrl = p.node("before_url")

@@ -1,15 +1,31 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Generic, Optional, TypeVar
+from typing import Generic, TypeVar
 
-from .constants import *
+from .pybuilder import Property
+from .constants import (
+    SEQUENCE_COMPLETE,
+    SEQUENCE_MISMATCH,
+    SEQUENCE_PAUSE,
+    SIGNED_LIMITS,
+    SIGNED_TYPES,
+    STATE_ERROR,
+    STATE_PREFIX,
+    ARG_STATE,
+    UNSIGNED_LIMITS,
+    LABEL_PREFIX,
+    VAR_MATCH,
+    ARG_ENDPOS,
+    ARG_POS,
+    BLOB_PREFIX,
+)
 from .frontend import IWrap, WrappedNode, _frontend
 
 # NOTE Unfortunately You cant Just import from different files as that would trigger a Circular import
 # So this file a little bit bigger than what I hoped for but was my only solution - Vizonex
 
 
-@dataclass
+@dataclass(slots=True)
 class Transform(ABC):
     ref: _frontend.transform.Transform
 
@@ -17,25 +33,25 @@ class Transform(ABC):
     def build(self, ctx: "Compilation", value: str) -> None: ...
 
 
-@dataclass
+@dataclass(slots=True)
 class ID(Transform):
     def build(self, ctx: "Compilation", value: str):
         return value
 
 
-@dataclass
+@dataclass(slots=True)
 class ToLowerUnsafe(Transform):
     def build(self, ctx: "Compilation", value: str):
         return f"(({value})| 0x20)"
 
 
-@dataclass
+@dataclass(slots=True)
 class ToLower(Transform):
     def build(self, ctx: "Compilation", value: str):
         return f"(({value}) >= 'A' && ({value}) <= 'Z' ? ({value} | 0x20) : ({value}))"
 
 
-@dataclass
+@dataclass(slots=True)
 class MatchSequence:
     transform: Transform
 
@@ -99,6 +115,8 @@ T = TypeVar("T", _frontend.code.Code, _frontend.code.Field)
 
 
 class Code(Generic[T]):
+    __slots__ = "ref"
+
     def __init__(self, ref: T):
         self.ref = ref
 
@@ -286,14 +304,16 @@ class Operator(Field):
 class INodeEdge:
     node: IWrap[_frontend.node.Node]
     noAdvance: bool
-    value: Optional[int] = None
+    value: int | None = None
 
 
 class Node:
+    __slots__ = ("ref", "cachedDecl", "priv_compilation")
+
     def __init__(self, ref: _frontend.node.Node) -> None:
         self.ref = ref
-        self.cachedDecel: Optional[str] = None
-        self.privCompilation: Optional["Compilation"] = None
+        self.cachedDecel: str | None = None
+        self.priv_compilation: Compilation | None = None
 
     def build(self, compilation: "Compilation"):
         if self.cachedDecel:
@@ -302,7 +322,7 @@ class Node:
         res = STATE_PREFIX + self.ref.id.name
         # cached Decel Prevents Recursion errors....
         self.cachedDecel = res
-        self.privCompilation = compilation
+        self.priv_compilation = compilation
 
         out: list[str] = []
         # if "update_key" in res:
@@ -321,8 +341,8 @@ class Node:
 
     @property
     def compilation(self):
-        assert self.privCompilation
-        return self.privCompilation
+        assert self.priv_compilation
+        return self.priv_compilation
 
     def prologue(self, out: list[str]):
         ctx = self.compilation
@@ -345,7 +365,7 @@ class Node:
         out: list[str],
         node: IWrap[_frontend.node.Node],
         noAdvance: bool,
-        value: Optional[int] = None,
+        value: int | None = None,
     ):
         ctx = self.compilation
         target = ctx.unwrapNode(node).build(ctx)
@@ -606,8 +626,8 @@ class SpanStart(Node):
     def __init__(self, ref: _frontend.node.SpanStart) -> None:
         self.ref = ref
 
-        self.cachedDecel: Optional[str] = None
-        self.privCompilation: Optional["Compilation"] = None
+        self.cachedDecel: str | None = None
+        self.priv_compilation: Compilation | None = None
 
     def doBuild(self, out: list[str]):
         self.prologue(out)
@@ -696,6 +716,8 @@ class SpanEnd(Node):
 
 
 class Int(Node):
+    __slots__ = ("offset", "priv_compilation", "cachedDecel")
+
     def __init__(self, ref: _frontend.node.Int):
         super().__init__(ref)
         self.ref = ref
@@ -915,8 +937,8 @@ class TableLookup(Node):
 
         ranges: list[int] = []
 
-        first: Optional[int] = None
-        last: Optional[int] = None
+        first: int | None = None
+        last: int | None = None
 
         for key in edge.keys:
             if not first:
@@ -1005,23 +1027,34 @@ class TableLookup(Node):
 
 BLOB_GROUP_SIZE = 11
 
-from .pybuilder import Property
 
-
-@dataclass
+@dataclass(slots=True)
 class ICompilerOptions:
-    debug: Optional[str] = None
-    header: Optional[str] = None
+    debug: str | None = None
+    header: str | None = None
 
 
-@dataclass
+@dataclass(slots=True)
 class IBlob:
     buffer: bytes
     name: str
-    alignment: Optional[int] = None
+    alignment: int | None = None
 
 
 class Compilation:
+    __slots__ = (
+        "prefix",
+        "properties",
+        "options",
+        "resumption_targets",
+        "code_map",
+        "CodeContainer",
+        "NodeContainer",
+        "state_dict",
+        "blobs",
+        "matchSequence"
+    )
+
     def __init__(
         self,
         prefix: str,
@@ -1032,21 +1065,21 @@ class Compilation:
         self.prefix = prefix
         self.properties = properites
         self.options = options
-        self.resumptionTargets: set[str] = set()
+        self.resumption_targets: set[str] = set()
 
         # Containers are used to prevent recursions
         self.CodeContainer: dict[IWrap[_frontend.code.Code], Code] = {}
         self.NodeContainer: dict[IWrap[_frontend.node.Node], Node] = {}
 
-        self.codeMap: dict[str, Code] = {}
-        self.stateDict: dict[str, list[str]] = {}
+        self.code_map: dict[str, Code] = {}
+        self.state_dict: dict[str, list[str]] = {}
 
         self.blobs: dict[bytes, IBlob] = {}
 
         self.matchSequence: dict[str, MatchSequence] = {}
 
         for node in resumptionsTargets:
-            self.resumptionTargets.add(STATE_PREFIX + node.ref.id.name)
+            self.resumption_targets.add(STATE_PREFIX + node.ref.id.name)
 
     def buildStateEnum(self, out: list[str]):
         # TODO (Vizonex) Give out other names that you could pass as an enum statename
@@ -1054,15 +1087,15 @@ class Compilation:
         # example would be mixing llhttp with some other source...
         out.append("enum llparse_state_e {")
         out.append(f"  {STATE_ERROR},")
-        for stateName in self.stateDict.keys():
-            # if stateName in self.resumptionTargets:
+        for stateName in self.state_dict.keys():
+            # if stateName in self.resumption_targets:
             # NOTE I think these are all resumption targets so this will do...
             out.append(f"  {stateName},")
         out.append("};")
         out.append("typedef enum llparse_state_e llparse_state_t;")
 
     def buildBlobs(self, out: list[str]):
-        if len(self.blobs) == 0:
+        if not self.blobs:
             return
 
         for blob in self.blobs.values():
@@ -1110,7 +1143,7 @@ class Compilation:
         out.append("")
 
     def buildMatchSequence(self, out: list[str]):
-        if len(self.matchSequence) == 0:
+        if not self.matchSequence:
             return
         MatchSequence.buildGlobals(out)
 
@@ -1150,8 +1183,8 @@ class Compilation:
         fix_and_build(self, out)
 
     def buildResumptionStates(self, out: list[str]):
-        for name, lines in self.stateDict.items():
-            if name not in self.resumptionTargets:
+        for name, lines in self.state_dict.items():
+            if name not in self.resumption_targets:
                 continue
 
             out.append(f"case {name}:")
@@ -1162,8 +1195,8 @@ class Compilation:
             out.append("}")
 
     def buildInternalStates(self, out: list[str]):
-        for name, lines in self.stateDict.items():
-            if name in self.resumptionTargets:
+        for name, lines in self.state_dict.items():
+            if name in self.resumption_targets:
                 continue
 
             out.append(f"{LABEL_PREFIX}{name}: " + "{")
@@ -1173,24 +1206,23 @@ class Compilation:
             out.append("}")
 
     def addState(self, state: str, lines: list[str]):
-        assert not self.stateDict.get(state)
-        self.stateDict[state] = lines
+        assert not self.state_dict.get(state)
+        self.state_dict[state] = lines
 
     def buildCode(self, code: Code) -> str:
-        if self.codeMap.get(code.ref.name):
-            if self.codeMap[code.ref.name].__dict__ != code.__dict__:
-                raise AssertionError(
-                    f'Code name conflict for "{code.ref.name}"   {self.codeMap.get(code.ref.name).__dict__} != {code.__dict__}'
-                )
-            # return code.ref.name
+        if code.ref.name in self.code_map:
+            assert self.code_map[code.ref.name].__dict__ == code.__dict__, (
+                f'Code name conflict for "{code.ref.name}"   {self.code_map.get(code.ref.name).__dict__} != {code.__dict__}'
+            )
+
         else:
-            self.codeMap[code.ref.name] = code
+            self.code_map[code.ref.name] = code
         return code.ref.name
 
-    def getFieldType(self, field: str):
-        for property in self.properties:
-            if property.name == field:
-                return property.ty
+    def getFieldType(self, field: str) -> str:
+        for prop in self.properties:
+            if prop.name == field:
+                return prop.ty
 
         else:
             raise LookupError(f'Field "{field}" not found')
@@ -1204,7 +1236,7 @@ class Compilation:
 
         ref = code.ref
 
-        # Check to see if we already have the element in the codemap first.
+        # Check to see if we already have the element in the code_map first.
         # If we do, return that instead. This will prevent a recursion error...
 
         if isinstance(ref, _frontend.code.And):
@@ -1238,8 +1270,10 @@ class Compilation:
         return r
 
     def unwrapNode(self, node: IWrap[_frontend.node.Node]):
-        if self.NodeContainer.get(node):
-            return self.NodeContainer[node]
+        if n := self.NodeContainer.get(node):
+            return n
+
+        # TODO: look into type dictionaries or an lru_cache instead?
 
         ref = node.ref
         if isinstance(ref, _frontend.node.Consume):
@@ -1290,63 +1324,63 @@ class Compilation:
             f'refrence "{ref.name}" is an Invalid Code Type , TypeName:"{ref.__class__.__name__}"'
         )
 
-    def indent(self, out: list[str], lines: list[str], pad: str):
+    def indent(self, out: list[str], lines: list[str], pad: str) -> None:
         for line in lines:
             out.append(f"{pad}{line}")
 
-    def getMatchSequence(self, transform: IWrap[_frontend.transform.Transform]):
+    def getMatchSequence(self, transform: IWrap[_frontend.transform.Transform]) -> str:
         wrap: Transform = self.unwrapTransform(transform)
 
-        if self.matchSequence.get(wrap.ref.name):
+        if wrap.ref.name in self.matchSequence:
             res = self.matchSequence[wrap.ref.name]
         else:
             res = MatchSequence(wrap)
             self.matchSequence[wrap.ref.name] = res
         return res.getName()
 
-    def stateArg(self):
+    def stateArg(self) -> str:
         return ARG_STATE
 
-    def posArg(self):
+    def posArg(self) -> str:
         return ARG_POS
 
-    def endPosArg(self):
+    def endPosArg(self) -> str:
         return ARG_ENDPOS
 
-    def matchVar(self):
+    def matchVar(self) -> str:
         return VAR_MATCH
 
     def indexField(self):
         return self.stateField("_index")
 
-    def currentField(self):
+    def currentField(self) -> str:
         return self.stateField("_current")
 
-    def errorField(self):
+    def errorField(self) -> str:
         return self.stateField("error")
 
-    def reasonField(self):
+    def reasonField(self) -> str:
         return self.stateField("reason")
 
-    def errorPosField(self):
+    def errorPosField(self) -> str:
         return self.stateField("error_pos")
 
-    def spanPosField(self, index: int):
+    def spanPosField(self, index: int) -> str:
         return self.stateField(f"_span_pos{index}")
 
-    def spanCbField(self, index: int):
+    def spanCbField(self, index: int) -> str:
         return self.stateField(f"_span_cb{index}")
 
-    def stateField(self, name: str):
+    def stateField(self, name: str) -> str:
         return f"{self.stateArg()}->{name}"
 
     # Globals
 
-    def cstring(self, value: str):
+    def cstring(self, value: str) -> str:
         return f'"{value}"'
 
-    def blob(self, value: bytes, alignment: Optional[int] = None):
-        if self.blobs.get(value):
+    def blob(self, value: bytes, alignment: int | None = None) -> str:
+        if value in self.blobs:
             return self.blobs[value].name
 
         res = BLOB_PREFIX + str(len(self.blobs))
@@ -1357,6 +1391,6 @@ class Compilation:
 
 def fix_and_build(ctx: Compilation, out: list[str]):
     """Helper function that ups with building globals out..."""
-    for code in ctx.codeMap.values():
+    for code in ctx.code_map.values():
         out.append("")
         code.build(ctx, out)
