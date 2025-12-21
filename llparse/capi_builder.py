@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re  # inspired by rust's bindgen clang compiler
 import sys
+from pathlib import Path
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -50,7 +51,7 @@ API_C_CODE = Template("""
 
 #include "{{header}}"
  
-/* Prevent Interfearing with other parsers (example: llhttp) */
+/* Prevent Interfearing with other parsers (example: {{prefix}}) */
 #define {{upper}}_CALLBACK_MAYBE(PARSER, NAME)                                      \\
    do {                                                                        \\
      {{prefix}}_settings_t* settings;                                                  \\
@@ -73,7 +74,7 @@ API_C_CODE = Template("""
     err = settings->NAME((PARSER), (START), (LEN));                           \\
   } while (0)
 
-/* Custom Underrived from llhttp */
+/* Custom Underrived from {{prefix}} */
 #define {{upper}}_VALUE_CALLBACK_MAYBE(PARSER, NAME, VALUE)                        \\
    do {                                                                        \\
      {{prefix}}_settings_t* settings;                                                  \\
@@ -123,6 +124,15 @@ void {{prefix}}_settings_init({{prefix}}_settings_t* settings) {
     memset(settings, 0, sizeof(*settings));
 }
 
+int {{prefix}}_execute({{prefix}}_t* parser, const char* data, size_t len) {
+  return {{prev_prefix}}_execute(parser, data, data + len);
+}
+                      
+{{if extra_code}}
+/* EXTRAS */
+{{extra_code}}
+{{endif}}
+
 """)
 
 
@@ -134,6 +144,7 @@ API_C_HEADER = Template(
 extern "C" {
 #endif
 #include <stddef.h>
+#include <stdint.h>
 
 #if defined(__wasm__)
 #define {{export}} __attribute__((visibility("default")))
@@ -161,19 +172,35 @@ typedef int (*{{prefix}}_value_cb)({{prefix}}_t*, int value);
 struct {{prefix}}_settings_s {
     {{if spans}}
     /* Spans */
-    {{for _, name in spans}}{{prefix}}_data_cb      {{name}};{{endfor}}
+    {{for _, name in spans}}
+    {{prefix}}_data_cb      {{name}};
+    {{endfor}}
     
     {{endif}}
     {{if values}}
     /* Value Callbacks */
-    {{for _, name in values}}{{prefix}}_value_cb      {{name}};{{endfor}}
+    {{for _, name in values}}
+    {{prefix}}_value_cb      {{name}};
+    {{endfor}}
     
     {{endif}}
     {{if matches}}
     /* Callbacks */
-    {{for _, name in matches}}{{prefix}}_cb     {{name}};{{endfor}}
+    {{for _, name in matches}}
+    {{prefix}}_cb     {{name}};
+    {{endfor}}
     {{endif}}
 };
+
+{{export}}
+void {{prefix}}_settings_init({{prefix}}_settings_t* settings);
+
+{{export}}
+int {{prefix}}_execute({{prefix}}_t* parser, const char* data, size_t len);
+
+{{if extra_code}}
+{{extra_code}}
+{{endif}}
 
 #ifdef __cplusplus
 } /* extern "C" */
@@ -268,7 +295,7 @@ class CythonWriter(CodeWriter):
 
 class Filter:
     """A Filter to go off for match, value, and spans
-    to help organize the output for an llhttp-like C
+    to help organize the output for an {{prefix}}-like C
     Library"""
 
     __slots__ = ("_pattern", "_is_re", "_use")
@@ -302,10 +329,10 @@ class Filter:
     def is_match(self, name: str) -> bool:
         """Determines if the source matches up"""
         if self._is_re:
-            return re.search(self._pattern) is not None
+            return re.search(self._pattern, name) is not None
         else:
             # it's most likely a prefix of ignorable callbacks...
-            return name.startswith(self._pattern)
+            return name.startswith(self._pattern) or self._pattern == name
 
     def edit_name(self, name: str) -> str:
         """Ran when use is enabled"""
@@ -374,7 +401,7 @@ class UsedResults:
             raise TypeError(f"unknown type for name:{name} type:{ty}")
 
 
-@dataclass
+@dataclass(slots=True)
 class Results:
     ignore: IgnoredResults = field(default_factory=IgnoredResults)
     """Seperates into a non-api file under a .c suffix these
@@ -395,6 +422,73 @@ class CAPIResult:
     c: str
     header: str
 
+    def write(self, c: Path | str, header:Path | str) -> None:
+        """
+        Writes the output to the chosen file locations
+
+        :param c: Output for where to write the C File
+        :type c: Path | str
+        :param header: Output for where to write the Header File
+        :type header: Path | str
+        """
+        Path(c).write_text(self.c)
+        Path(header).write_text(self.header)
+    
+
+# Undecided on implementing yet...
+# class Getter:
+#     """A property that can be defined and obtained with a C wrapper"""
+
+#     def __init__(
+#         self, 
+#         name: str, 
+#         reset: bool = False,
+#         init: bool = False,
+#         recast_type:str | None = None 
+#     ) -> None:
+#         self.name = name
+#         self.reset = reset
+#         self.init = init
+#         self.recast_type = recast_type
+
+
+# class ErrnoGetter(Getter):
+#     """
+#     Creates a list of errors that your parser can raise 
+#     if you provided enums originally.
+#     """
+
+#     def __init__(
+#         self, 
+#         ty: type[IntEnum],
+#         recast_type: str | None = None,
+#         pause:IntEnum | None=  None,
+#     ) -> None:
+#         self.pause = pause
+#         self.emap = {k:v.value for k, v in ty._member_map_.items()}
+
+#         super().__init__(name="error", reset=False, init=False, recast_type=recast_type)
+
+#     def write_enum(self, prefix:str) -> str:
+#         code  = f"enum {prefix}_errno" + "{"
+#         code += ",\n".join([f"  {k} = {v}" for k, v in self.emap.items()])
+#         code += "\n};"
+#         code += f"typedef enum {prefix}_errno {prefix}_errno_t;\n"
+#         return code
+
+#     def write_map(self, prefix:str):
+#         code = "#define " + prefix.upper() + "_ERRNO_MAP(XX) \\\n"
+#         for v, k in self.emap.items():
+#             code += f"XX({v}, {k}, {k}) \\\n"
+#         code += "\n\n"
+#         return code
+
+
+
+
+   
+
+
 
 class LibraryCompiler:
     """Used for writing in what callbacks to mark as wrappable or don't use
@@ -403,7 +497,7 @@ class LibraryCompiler:
 
     __slots__ = ("_filters", "_dummy_ignore", "_prefix", "_previous_prefix")
 
-    def __init__(self, prefix: str, llparse: LLParse):
+    def __init__(self, prefix: str, llparse: LLParse) -> None:
         self._filters: set[Filter] = set()
         # Put all ignored spans, matches and values here...
         self._dummy_ignore = Filter("dummy", False)
@@ -491,6 +585,8 @@ class LibraryCompiler:
         root: builder.Node,
         header: str | None = None,
         headerguard: str | None = None,
+        extra_header_code:str | None = None,
+        extra_c_code:str | None = None
     ) -> CAPIResult:
         """
         Compile library's data and create a header file and other external for the library's c-api
@@ -501,6 +597,10 @@ class LibraryCompiler:
         :type header: str | None
         :param headerguard: The Macro's name for the Header guard
         :type headerguard: str | None
+        :param extra_header_code: Applies extra code to the header file if extra functions or things were required
+        :type extra_header_code:str | None
+        :param extra_c_code: Applies extra code to the c file if extra functions or things were required
+        :type extra_c_code:str | None
         :return: The CAPI Result containing extra files for the c-wrapper
         :rtype: CAPIResult
 
@@ -515,6 +615,8 @@ class LibraryCompiler:
             spans=used.spans,
             upper=self._prefix.upper(),
             header=header or (self._prefix + ".h"),
+            prev_prefix=self._previous_prefix,
+            extra_code=extra_c_code
         )
         header_code = API_C_HEADER.substitute(
             prefix=self._prefix,
@@ -525,5 +627,6 @@ class LibraryCompiler:
             export=self._prefix.upper() + "_EXPORT",
             headerguard=headerguard or f"{self._prefix.upper()}_CAPI_INCLUDE",
             prev_prefix=self._previous_prefix,
+            extra_code=extra_header_code
         )
         return CAPIResult(api_code, header_code)

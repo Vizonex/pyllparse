@@ -1,6 +1,5 @@
-""""""
-
 from dataclasses import dataclass
+from pathlib import Path
 
 from .C_compiler import CCompiler
 from .frontend import (
@@ -14,34 +13,35 @@ from .header import HeaderBuilder
 from .capi_builder import LibraryCompiler
 
 
-@dataclass
+@dataclass(slots=True)
 class CompilerResult:
     c: str
     """Textual C code"""
     header: str
     """Textual C header file"""
 
-    # NOTE Coming soon... I will making a settings compiler which is attached to CompilerResult to Compile your own
-    # settings structures and be able to concate it to the existing header file like in llhttp
-    # I'm also in the works of adding a Cython .pxd import as well...
+    def write(self, c: Path | str, header:Path | str) -> None:
+        """
+        Writes the output to the chosen file locations
 
+        :param c: Output for where to write the C File
+        :type c: Path | str
+        :param header: Output for where to write the Header File
+        :type header: Path | str
+        """
+        Path(c).write_text(self.c)
+        Path(header).write_text(self.header)
+    
 
+# It's just small enough to write the compile as a dataclass
+@dataclass(slots=True)
 class Compiler:
     """Used to Compile C code together"""
-
-    def __init__(
-        self,
-        prefix: str,
-        headerGuard: str | None = None,
-        debug: str | None = None,
-        maxTableElemWidth: int | None = None,
-        minTableSize: int | None = None,
-    ):
-        self.prefix = prefix
-        self.headerGuard = headerGuard
-        self.debug = debug
-        self.maxTableElemWidth = maxTableElemWidth
-        self.minTableSize = minTableSize
+    prefix: str
+    headerGuard: str | None = None
+    debug: str | None = None
+    maxTableElemWidth: int | None = None
+    minTableSize: int | None = None
 
     def to_frontend(
         self,
@@ -167,6 +167,6 @@ class LLParse(source.Builder):
             minTableSize if minTableSize else DEFAULT_MIN_TABLE_SIZE,
         ).to_frontend(root, self.properties)
 
-    def capi(self, prefix: str):
+    def capi(self, prefix: str) -> LibraryCompiler:
         """Using a new prefix this tool enables helping build c-api wrapper that is simillar to llhttp"""
         return LibraryCompiler(prefix, self)
