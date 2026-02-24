@@ -255,6 +255,8 @@ class Frontend:
         elif isinstance(node, source.node.Int):
             result = self.translateInt(node)
 
+        elif isinstance(node, source.node.LengthConsume):
+            result = self.translateLengthConsume(node)
         else:
             raise Exception(f'Unknown Node Type for :"{node.name}" {type(node)}')
 
@@ -263,7 +265,7 @@ class Frontend:
         if isinstance(result, list):
             # result:list[WrappedNode]
 
-            assert isinstance(node, (source.code.Match, source.node.Int))
+            assert isinstance(node, (source.code.Match, source.node.Int, source.node.LengthConsume))
             _match = node
 
             assert otherwise, f'Node "{node.name}" has no ".otherwise()"'
@@ -343,6 +345,26 @@ class Frontend:
             front.ref.setOtherwise(outer, False)
             front = result[-1]
         return result
+
+    def translateLengthConsume(self, node: source.node.LengthConsume):
+        """Flattens LengthConsume into a List of Empty Nodes with skipTo advances.
+        """
+        # inner = _frontend.node.LengthConsume(self.Id.id(node.name))
+        def wrap_advance_number(an: int) -> IWrap[_frontend.node.Empty]:
+            return self.implementation.node.Empty(_frontend.node.Empty(self.Id.id(f"{node.name}_{an}")))        
+        
+        results = [wrap_advance_number(0)]
+        front = self.Map[node] = results[0]
+
+        for i in range(1, node.length):
+            _next = wrap_advance_number(i)
+            results.append(_next)
+            front.ref.setOtherwise(_next, False)
+            front = _next
+        return results
+
+
+
 
     def maybeTableLookup(
         self, node: source.code.Match, trie: TrieSingle, children: MatchChildren
