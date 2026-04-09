@@ -189,6 +189,7 @@ class Node:
         self.otherwiseEdge = Edge(node, False, None, None)
         return self
 
+
     def getOtherwiseEdge(self):
         return self.otherwiseEdge
 
@@ -302,6 +303,27 @@ class Int(Node):
         self.signed = signed
         self.little_endian = little_endian
         super().__init__(build_name(field, bits, signed, little_endian))
+    
+    def otherwise(self, node):
+        """WARNING, otherwise is skipped as it can cause unwanted problems when parsing integers. 
+        Use skip_to or skipTo instead."""
+        raise TypeError("Int nodes do not support the use of `otherwise` use skipTo instead.")
+
+
+
+# Multiple character skipping
+# This is meant to lazily say "node" -> skipto(node) as many times as needed.
+# Without needing to use a specified field value. Useful with spans and protocols 
+# that only need to collect based on a given size.
+
+class LengthConsume(Node):
+    """unlike `Consume` which requires a field, this only requires a length to be provided
+    allowing for optimized advancments in the parser's overall skipping capabilities"""
+    def __init__(self, length: int) -> None:
+        super().__init__(f"length_consume_{length}_bits")
+        self.length = length
+    
+
 
 
 # -- Transfroms --
@@ -531,7 +553,7 @@ class Match(Node):
     def getTransform(self):
         return self.transformFn
 
-
+# TODO: (Vizonex) Rename _Span to MatchSpan?
 class _Span(Match):
     def __init__(self, name: str) -> None:
         self.name = name

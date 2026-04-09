@@ -1,6 +1,7 @@
 """
 Tests tools for writing C-API Wrappers
 """
+
 from llparse import LLParse
 import re
 
@@ -48,12 +49,12 @@ int llparse_execute(llparse_t* parser, const char* data, size_t len);
 """
 
 
-
 @pytest.fixture()
 def llparse() -> LLParse:
     return LLParse("llparse_internal")
 
-def test_collecting_spans(llparse:LLParse):
+
+def test_collecting_spans(llparse: LLParse):
     lc = llparse.capi("llparse")
     span = llparse.span(llparse.code.span("span"))
     start = llparse.node("start")
@@ -68,7 +69,7 @@ def test_collecting_spans(llparse:LLParse):
     assert result.use.spans, "No spans found"
 
 
-def test_collecting_matches(llparse:LLParse):
+def test_collecting_matches(llparse: LLParse):
     lc = llparse.capi("lc")
     span = llparse.span(llparse.code.span("llparse_on_span"))
     on_test = llparse.code.match("llparse_on_test")
@@ -76,14 +77,10 @@ def test_collecting_matches(llparse:LLParse):
     start = llparse.node("start")
     body = llparse.node("body")
 
-    start.otherwise(
-        span.start(body)
-    )
+    start.otherwise(span.start(body))
 
     body.skipTo(
-        span.end(
-            llparse.invoke(on_test, {0:start}, llparse.error(-1, "error"))
-        )
+        span.end(llparse.invoke(on_test, {0: start}, llparse.error(-1, "error")))
     )
     lc.use("llparse_")
     result = lc.filter(start)
@@ -91,7 +88,7 @@ def test_collecting_matches(llparse:LLParse):
     assert result.use.matches, "No matches found"
 
 
-def test_write_capi(llparse:LLParse):
+def test_write_capi(llparse: LLParse):
     lc = llparse.capi("llparse")
     span = llparse.span(llparse.code.span("llparse_on_span"))
     on_test = llparse.code.match("llparse_on_test")
@@ -99,23 +96,14 @@ def test_write_capi(llparse:LLParse):
     start = llparse.node("start")
     body = llparse.node("body")
 
-    start.otherwise(
-        span.start(body)
-    )
+    start.otherwise(span.start(body))
 
     body.skipTo(
-        span.end(
-            llparse.invoke(on_test, {0:start}, llparse.error(-1, "error"))
-        )
+        span.end(llparse.invoke(on_test, {0: start}, llparse.error(-1, "error")))
     )
 
     lc.use("span")
     lc.use_regex(r"llparse_([^\s]+)")
 
-    
     result = lc.build(start)
     assert result.header.strip() == DUMMY_HEADER.strip()
-
-
-
-

@@ -1,6 +1,7 @@
 from typing import Literal
 
 from ..pybuilder import main_code as code
+import warnings
 
 # typehinting node and code (TODO: Vizonex) Lets seperate the modules soon...
 node = code
@@ -280,6 +281,7 @@ class Creator:
         """
 
         return code.Operator(">=", field, value)
+    
 
 
 # NOTE: I have Nodes and Codes in the same file called `main_code`
@@ -382,3 +384,29 @@ class Builder:
         :param bits: Number of bits to use
         """
         return code.Int(field, bits, False, True)
+
+    def skip_multiple(self, value: int):
+        """
+        A Numerous number of nodes to have being skipped over
+        this value must be greater than 1 but know that passing
+        anything higher than 256 may lead to performance regressions 
+        with your parser.
+
+        :param value: a value greater than 2 
+
+        """
+        if value <= 1:
+            raise ValueError(f"A value that is <= 1 for skip_multiple defeats it's purpose. Got {value}")
+        
+        # TODO: Remove this warning when an alternative method such as 
+        # Creating a u64 dummy field with consume can be readily supplied (Code generation side of things). 
+        if value >= 256:
+            warnings.warn(
+            f"skipping nodes greater than 256 in this case: {value}"
+            " may cause significant performance regressions with the parser " \
+            " being generated", UserWarning)
+        
+        return code.LengthConsume(value)
+
+    
+

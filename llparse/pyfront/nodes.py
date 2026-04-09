@@ -165,6 +165,18 @@ class Int(Node):
 
     def __hash__(self):
         return hash(self.id)
+    
+
+# Introduced in 0.4.0 
+# A LengthConsume Node provides the ability of over a 
+# provided amount of characters for optimized performance.
+
+
+class LengthConsume(Node):
+    def __init__(self, id: IUniqueName, length: int) -> None:
+        self.length = length
+        super().__init__(id)
+
 
 
 @dataclass

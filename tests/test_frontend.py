@@ -178,3 +178,34 @@ def test_operators(op: str):
         assert "int test__c_ge_a_10 (" in code
     elif op == "<=":
         assert "int test__c_le_a_10 (" in code
+
+
+@pytest.fixture(params=list(range(2, 10)))
+def amount(request: pytest.FixtureRequest) -> int:
+    return request.param
+
+
+def test_length_consume(amount: int):
+    s = LLParse("test")
+    on_end = s.span(s.code.span("on_end"))
+    end = s.node("end")
+    start = s.node("start").skipTo(on_end.start(s.skip_multiple(amount).otherwise(end)))
+    end.otherwise(on_end.end().skipTo(start))
+
+    t = s.build(start)
+    code = t.c.splitlines(keepends=False)
+    for s in range(amount - 1):
+        # should be enough to see that we have a length consumption of bits
+        assert f"  s_n_test__n_length_consume_{amount}_bits_{s}," in code
+        assert f"    case s_n_test__n_length_consume_{amount}_bits_{s}:" in code
+        assert f"      goto s_n_test__n_length_consume_{amount}_bits_{s};" in code
+
+@pytest.fixture(params=[-2, 0, 1, -42069])
+def invalid_amount(request: pytest.FixtureRequest) -> int:
+    return request.param
+
+def test_length_consume_fail(invalid_amount: int):
+    with pytest.raises(ValueError):
+        s = LLParse("test")
+        s.skip_multiple(invalid_amount)
+
